@@ -7,5 +7,6 @@ release/
 .vscode/*
 !.vscode/launch.json
 !.vscode/extensions.json
-.claude/
+.claude/*
+!.claude/agents/
 coverage/
