@@ -1,0 +1,57 @@
+{
+  "name": "ptah",
+  "version": "0.1.0",
+  "description": "Ptah — a local-first personal ticket/todo system. All data lives as Markdown files on disk.",
+  "author": "Alwyn Thomas <alwynthomas@live.co.uk>",
+  "license": "MIT",
+  "private": true,
+  "main": "dist-electron/main/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit -p tsconfig.app.json && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --ext .ts,.vue",
+    "format": "prettier --write \"src/**/*.{ts,vue,css}\"",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
+    "dist": "npm run build && electron-builder",
+    "dist:dir": "npm run build && electron-builder --dir"
+  },
+  "dependencies": {
+    "highlight.js": "^11.10.0",
+    "js-yaml": "^4.1.0",
+    "markdown-it": "^14.1.0",
+    "markdown-it-anchor": "^9.2.0",
+    "pinia": "^2.2.6",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^22.10.1",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/test-utils": "^2.4.6",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "eslint": "^8.57.1",
+    "eslint-plugin-vue": "^9.32.0",
+    "jsdom": "^25.0.1",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vitest": "^2.1.8",
+    "vue-tsc": "^2.1.10"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.21.5": true,
+    "electron@33.4.11": true,
+    "vue-demi@0.14.10": true
+  }
+}

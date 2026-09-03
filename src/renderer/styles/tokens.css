@@ -1,0 +1,41 @@
+/* Theme tokens. Light values on :root; dark overrides under [data-theme='dark'].
+   The renderer sets data-theme on <html> from the settings store. */
+
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --border: #d9dce1;
+  --text: #1d2126;
+  --text-muted: #6b7280;
+  --accent: #2f6feb;
+  --accent-contrast: #ffffff;
+  --danger: #d64545;
+  --ok: #2f9e44;
+  --warn: #d9820b;
+
+  --radius: 6px;
+  --gap: 12px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  --prio-lowest: #8a94a6;
+  --prio-low: #4c9be8;
+  --prio-medium: #2f9e44;
+  --prio-high: #d9820b;
+  --prio-highest: #d64545;
+}
+
+:root[data-theme='dark'] {
+  --bg: #16181d;
+  --surface: #1e2127;
+  --surface-2: #262a31;
+  --border: #333842;
+  --text: #e6e8eb;
+  --text-muted: #9aa1ab;
+  --accent: #4c8dff;
+  --accent-contrast: #0d1117;
+  --danger: #e06c6c;
+  --ok: #4cb963;
+  --warn: #e0a13c;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+}

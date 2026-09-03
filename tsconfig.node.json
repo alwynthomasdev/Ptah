@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"],
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@main/*": ["src/main/*"],
+      "@core/*": ["src/core/*"],
+      "@storage/*": ["src/storage/*"],
+      "@shared/*": ["src/shared/*"],
+      "@models/*": ["src/models/*"]
+    }
+  },
+  "include": [
+    "src/main/**/*.ts",
+    "src/preload/**/*.ts",
+    "src/core/**/*.ts",
+    "src/storage/**/*.ts",
+    "src/shared/**/*.ts",
+    "src/models/**/*.ts",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ]
+}
