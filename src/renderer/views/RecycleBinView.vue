@@ -69,7 +69,6 @@ onMounted(load);
 
 <style scoped>
 .view {
-  padding: 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 14px;

@@ -13,6 +13,20 @@ product spec.
 The build is delivered in milestones; the plan and current milestone status live
 in `~/.claude/plans/read-spec-md-plan-the-eager-babbage.md` and `CHANGELOG.md`.
 
+## Design
+
+The renderer's visual target is `design/ptah-mockup.html` — a self-contained
+static prototype of the whole app shell (52px topbar, sectioned sidebar, in-view
+tabs + toolbar, horizontal swimlane, list/backlog/archive tables). It is the
+source of truth for layout, palette, spacing, and the flat (no-shadow) look;
+`src/renderer/styles/tokens.css` mirrors its colour tokens.
+
+Caveat: the prototype defaults to dark and switches themes by swapping
+`html[data-theme="light"]`. Ptah does **not** work that way — `tokens.css` keeps
+light values on `:root` with dark under `:root[data-theme='dark']`, and
+`src/renderer/stores/settings.ts` writes an explicit `data-theme` on `<html>`
+(resolving `system`). Take the mockup's *values*, not its theme wiring.
+
 ## Subagents
 
 Work is divided across `.claude/agents/`: **`ui`** (`src/renderer`),
@@ -103,7 +117,10 @@ Node-free is what lets the renderer import them.
   (the `context` binding is reassigned); handlers are registered once and close
   over the mutable binding.
 - **Filtering/sorting** is pure and lives in `src/models/Filter.ts`
-  (`filterAndSort`), applied in the renderer stores and `TicketBrowser.vue`.
+  (`filterAndSort`), applied in the renderer via the `tickets` store's
+  `filter`/`sort` state — driven by the top-bar search, the toolbar sort
+  control, and the sidebar label filter, and consumed by every view through the
+  store's getters.
 
 ### Build specifics
 

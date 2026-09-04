@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import type { AppConfig } from '@shared/ipc';
 import { useSettingsStore } from '../stores/settings';
 import { useProjectsStore } from '../stores/projects';
 import { useTicketsStore } from '../stores/tickets';
+import ThemeToggle from '../components/ThemeToggle.vue';
 
 const emit = defineEmits<{ changed: [] }>();
 const settings = useSettingsStore();
@@ -11,15 +11,14 @@ const projects = useProjectsStore();
 const tickets = useTicketsStore();
 const busy = ref(false);
 
-const themes: AppConfig['theme'][] = ['light', 'dark', 'system'];
-
 async function changeDataDir() {
   busy.value = true;
   try {
     const cfg = await settings.pickDataDir();
     if (cfg) {
       await projects.load();
-      await tickets.load(projects.activeKey ?? undefined);
+      await tickets.load();
+      tickets.setFilter({ projects: projects.activeKey ? [projects.activeKey] : undefined });
       emit('changed');
     }
   } finally {
@@ -34,16 +33,7 @@ async function changeDataDir() {
 
     <div class="card block">
       <h3>Theme</h3>
-      <div class="row">
-        <button
-          v-for="t in themes"
-          :key="t"
-          :class="{ primary: settings.theme === t }"
-          @click="settings.setTheme(t)"
-        >
-          {{ t }}
-        </button>
-      </div>
+      <ThemeToggle />
     </div>
 
     <div class="card block">
@@ -60,14 +50,13 @@ async function changeDataDir() {
 
 <style scoped>
 .view {
-  padding: 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   max-width: 640px;
 }
 h2 {
-  margin: 0;
+  margin: 0 0 4px;
 }
 .block {
   padding: 14px 16px;

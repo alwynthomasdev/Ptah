@@ -4,6 +4,7 @@ import type { Ticket } from '@models/Ticket';
 import { PRIORITIES, PRIORITY_LABELS, STATUSES, STATUS_LABELS } from '@models/Ticket';
 import { fromDateInput, toDateInput } from '@shared/dates';
 import { useTicketsStore } from '../stores/tickets';
+import MarkdownEditor from './MarkdownEditor.vue';
 
 const props = defineProps<{
   mode: 'create' | 'edit';
@@ -110,9 +111,13 @@ async function submit() {
           <input v-model="form.labels" placeholder="bug, ui, urgent" />
         </label>
 
-        <label
-          >Description (Markdown)
-          <textarea v-model="form.description" rows="10" />
+        <label class="md-field">
+          <span>Description (Markdown)</span>
+          <MarkdownEditor
+            v-model="form.description"
+            :project="props.projectKey ?? props.ticket?.project"
+            :ticket-id="props.ticket?.id"
+          />
         </label>
 
         <p v-if="error" class="err">{{ error }}</p>
@@ -133,7 +138,7 @@ async function submit() {
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--overlay);
   display: grid;
   place-items: center;
   z-index: 50;
@@ -143,6 +148,7 @@ async function submit() {
   max-height: 90vh;
   overflow: auto;
   padding: 16px 20px 20px;
+  border-radius: 8px;
 }
 h3 {
   margin: 4px 0;
@@ -158,7 +164,7 @@ label {
   flex-direction: column;
   gap: 4px;
   font-size: 13px;
-  color: var(--text-muted);
+  color: var(--text-dim);
 }
 label input,
 label select,

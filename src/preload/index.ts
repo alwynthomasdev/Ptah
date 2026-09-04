@@ -31,6 +31,9 @@ const api: PtahApi = {
     purge: (id) => ipcRenderer.invoke(IPC.binPurge, id),
     empty: () => ipcRenderer.invoke(IPC.binEmpty),
   },
+  system: {
+    openExternal: (url) => ipcRenderer.invoke(IPC.systemOpenExternal, url),
+  },
 };
 
 contextBridge.exposeInMainWorld('ptah', api);

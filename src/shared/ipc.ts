@@ -30,6 +30,8 @@ export const IPC = {
   binRestore: 'bin:restore',
   binPurge: 'bin:purge',
   binEmpty: 'bin:empty',
+
+  systemOpenExternal: 'system:openExternal',
 } as const;
 
 /**
@@ -61,5 +63,9 @@ export interface PtahApi {
     restore(id: string): Promise<Result<Ticket>>;
     purge(id: string): Promise<Result<void>>;
     empty(): Promise<Result<void>>;
+  };
+  system: {
+    /** Open an `http(s)`/`mailto` URL in the OS default handler. */
+    openExternal(url: string): Promise<Result<void>>;
   };
 }

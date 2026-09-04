@@ -20,13 +20,32 @@ You own the **UI layer** of Ptah: `src/renderer/**` and `index.html`. Read
 
 ## Style
 
-- Flat UI. No component library. Styling is hand-rolled CSS.
-- All colors/spacing come from the custom properties in
-  `src/renderer/styles/tokens.css`. Never hardcode a hex color in a component —
-  add or reuse a token. Everything must work in light, dark, and system themes
-  (`data-theme` on `<html>`, driven by the settings store).
+- Flat UI — no shadows. No component library. Styling is hand-rolled CSS.
+- Every colour comes from a custom property in
+  `src/renderer/styles/tokens.css`. Never hardcode a hex colour in a component —
+  add or reuse a token. (Non-colour lengths — radii, gaps — may be literals when
+  they don't warrant a token.) Everything must work in light, dark, and system
+  themes (`data-theme` on `<html>`, driven by the settings store).
 - Keep components small and typed (`<script setup lang="ts">`). Match the
   conventions already in `src/renderer/components`.
+
+## Design reference
+
+`design/ptah-mockup.html` is the canonical visual target — a static prototype of
+the full shell (topbar, sectioned sidebar, in-view tabs + toolbar, horizontal
+swimlane, list/backlog/archive tables), flat with no shadows, monospace type for
+identifiers (ticket ids, counts). Match its layout, spacing, and palette.
+
+`src/renderer/styles/tokens.css` already mirrors the mockup's tokens: core
+`--bg` / `--surface` / `--surface-2` / `--border` / `--text` / `--text-dim` /
+`--text-faint` / `--accent` / `--accent-dim`; status colours `--backlog` /
+`--scheduled` / `--wip` / `--paused` / `--done` / `--archive`; priority
+`--p-lowest` … `--p-highest`; and the `--sans` / `--mono` font stacks.
+
+Do **not** copy the prototype's theming mechanism. It defaults to dark and
+toggles `html[data-theme="light"]`; Ptah keeps light on `:root`, dark under
+`:root[data-theme='dark']`, with an explicit `data-theme` written on `<html>` by
+the settings store. Take the mockup's values, not its theme wiring.
 
 ## Working rules
 

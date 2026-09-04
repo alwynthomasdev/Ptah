@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { RouterView, useRoute } from 'vue-router';
 import { useSettingsStore } from './stores/settings';
 import { useProjectsStore } from './stores/projects';
 import { useTicketsStore } from './stores/tickets';
 import ProjectPicker from './components/ProjectPicker.vue';
 import TicketDialog from './components/TicketDialog.vue';
+import TopBar from './components/TopBar.vue';
+import ViewTabs from './components/ViewTabs.vue';
+import Toolbar from './components/Toolbar.vue';
 
 const settings = useSettingsStore();
 const projects = useProjectsStore();
@@ -16,17 +19,35 @@ const booting = ref(true);
 const error = ref<string | null>(null);
 const showNew = ref(false);
 
-const nav = [
-  { to: '/board', label: 'Swimlane' },
-  { to: '/list', label: 'List' },
-  { to: '/backlog', label: 'Backlog' },
-  { to: '/archive', label: 'Archive' },
-  { to: '/bin', label: 'Recycle Bin' },
-  { to: '/settings', label: 'Settings' },
-];
+const views = computed(() => [
+  { to: '/board', label: 'Swimlane', count: null as number | null },
+  { to: '/list', label: 'List', count: null as number | null },
+  { to: '/backlog', label: 'Backlog', count: tickets.statusCounts.backlog as number | null },
+  { to: '/archive', label: 'Archive', count: tickets.statusCounts.archive as number | null },
+  { to: '/bin', label: 'Recycle bin', count: null as number | null },
+  { to: '/settings', label: 'Settings', count: null as number | null },
+]);
+
+const CHROME_ROUTES = ['board', 'list', 'backlog', 'archive'];
+const hasChrome = computed(() => CHROME_ROUTES.includes(String(route.name)));
+
+const activeLabels = computed(() => tickets.filter.labels ?? []);
+
+function toggleLabel(label: string) {
+  const current = activeLabels.value;
+  const next = current.includes(label)
+    ? current.filter((l) => l !== label)
+    : [...current, label];
+  tickets.setFilter({ labels: next });
+}
 
 async function reloadTickets() {
-  await tickets.load(projects.activeKey ?? undefined);
+  // Load every project's tickets; the sidebar / filter bar narrow the view.
+  await tickets.load();
+}
+
+function scopeToProject(key: string | null) {
+  tickets.setFilter({ projects: key ? [key] : undefined });
 }
 
 async function boot() {
@@ -34,6 +55,7 @@ async function boot() {
     await settings.load();
     await projects.load();
     await reloadTickets();
+    scopeToProject(projects.activeKey);
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -45,37 +67,64 @@ onMounted(boot);
 
 async function onProjectChange(key: string | null) {
   projects.setActive(key);
+  scopeToProject(key);
+}
+
+async function onProjectCreated() {
   await reloadTickets();
+  scopeToProject(projects.activeKey);
 }
 </script>
 
 <template>
-  <div class="app">
-    <aside class="sidebar">
-      <div class="brand">Ptah</div>
-      <ProjectPicker
-        :projects="projects.items"
-        :active="projects.activeKey"
-        @change="onProjectChange"
-        @created="reloadTickets"
-      />
-      <button class="primary new-btn" :disabled="!projects.activeKey" @click="showNew = true">
-        + New ticket
-      </button>
-      <nav>
+  <div class="shell">
+    <TopBar />
+
+    <aside class="sidebar scroll-thin">
+      <div class="side-section">
+        <div class="side-label">PROJECTS</div>
+        <ProjectPicker
+          :projects="projects.items"
+          :active="projects.activeKey"
+          @change="onProjectChange"
+          @created="onProjectCreated"
+        />
+      </div>
+
+      <div class="side-section">
+        <div class="side-label">VIEWS</div>
         <RouterLink
-          v-for="item in nav"
-          :key="item.to"
-          :to="item.to"
-          class="nav-link"
-          :class="{ active: route.path === item.to }"
+          v-for="v in views"
+          :key="v.to"
+          :to="v.to"
+          class="side-item"
+          active-class="active"
         >
-          {{ item.label }}
+          <span class="name">{{ v.label }}</span>
+          <span v-if="v.count !== null" class="count">{{ v.count }}</span>
         </RouterLink>
-      </nav>
+      </div>
+
+      <div v-if="tickets.labelsInView.length" class="side-section">
+        <div class="side-label">FILTER BY LABEL</div>
+        <div
+          v-for="l in tickets.labelsInView"
+          :key="l"
+          class="side-item"
+          :class="{ active: activeLabels.includes(l) }"
+          @click="toggleLabel(l)"
+        >
+          <span class="name">{{ l }}</span>
+        </div>
+      </div>
     </aside>
 
-    <main class="content">
+    <main class="main scroll-thin">
+      <template v-if="hasChrome">
+        <ViewTabs />
+        <Toolbar @new="showNew = true" />
+      </template>
+
       <div v-if="booting" class="muted pad">Loading…</div>
       <div v-else-if="error" class="pad">
         <p class="error">{{ error }}</p>
@@ -100,51 +149,76 @@ async function onProjectChange(key: string | null) {
 </template>
 
 <style scoped>
-.app {
+.shell {
   display: grid;
-  grid-template-columns: 232px 1fr;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 52px 1fr;
   height: 100%;
 }
+
 .sidebar {
-  background: var(--surface);
   border-right: 1px solid var(--border);
-  padding: 16px 12px;
+  background: var(--surface);
+  padding: 16px 10px;
+  overflow-y: auto;
+}
+.side-section {
+  margin-bottom: 20px;
+}
+.side-label {
+  font-size: 10.5px;
+  letter-spacing: 0.4px;
+  color: var(--text-faint);
+  padding: 0 8px 6px;
+  font-weight: 600;
+}
+.side-item {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.brand {
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 0.5px;
-}
-.new-btn {
-  width: 100%;
-}
-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 6px;
-}
-.nav-link {
-  padding: 7px 10px;
-  border-radius: var(--radius);
-  color: var(--text);
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
   text-decoration: none;
 }
-.nav-link:hover {
+.side-item:hover {
   background: var(--surface-2);
+  color: var(--text);
 }
-.nav-link.active {
+.side-item.active {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+}
+.side-item.active::before {
+  content: '';
+  width: 3px;
+  height: 14px;
   background: var(--accent);
-  color: var(--accent-contrast);
+  border-radius: 2px;
+  margin-left: -8px;
+  margin-right: 5px;
 }
-.content {
+.side-item .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-item .count {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+.main {
   overflow: auto;
+  padding: 18px 20px;
 }
 .pad {
-  padding: 24px;
+  padding: 24px 0;
 }
 .error {
   color: var(--danger);

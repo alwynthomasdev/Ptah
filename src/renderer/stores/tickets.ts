@@ -1,8 +1,16 @@
 import { defineStore } from 'pinia';
-import type { NewTicketInput, Ticket, TicketPatch } from '@models/Ticket';
+import type { NewTicketInput, Status, Ticket, TicketPatch } from '@models/Ticket';
+import { STATUSES } from '@models/Ticket';
 import type { TicketFilter, TicketSort } from '@models/Filter';
 import { filterAndSort } from '@models/Filter';
 import { call, ptah } from '../api';
+
+export type ListScope = 'working' | 'backlog' | 'archive' | 'all';
+
+/** Whether a ticket falls inside the current project filter (no filter = all). */
+function inProjectScope(ticket: Ticket, filter: TicketFilter): boolean {
+  return !filter.projects?.length || filter.projects.includes(ticket.project);
+}
 
 interface State {
   items: Ticket[];
@@ -37,6 +45,35 @@ export const useTicketsStore = defineStore('tickets', {
     },
     allFilteredSorted(s): Ticket[] {
       return filterAndSort(s.items, s.filter, s.sort);
+    },
+    /** Tally by status across the project scope (ignores text/label/priority filters). */
+    statusCounts(s): Record<Status, number> {
+      const counts = Object.fromEntries(STATUSES.map((st) => [st, 0])) as Record<Status, number>;
+      for (const t of s.items) if (inProjectScope(t, s.filter)) counts[t.status] += 1;
+      return counts;
+    },
+    /** Sorted, distinct labels across the project scope. */
+    labelsInView(s): string[] {
+      const seen = new Set<string>();
+      for (const t of s.items) {
+        if (!inProjectScope(t, s.filter)) continue;
+        for (const l of t.labels) seen.add(l);
+      }
+      return [...seen].sort((a, b) => a.localeCompare(b));
+    },
+    /** Scope filter (as TicketBrowser did), then the store's filter + sort. */
+    scopedList() {
+      return (scope: ListScope): Ticket[] => {
+        const base =
+          scope === 'backlog'
+            ? this.items.filter((t) => t.status === 'backlog')
+            : scope === 'archive'
+              ? this.items.filter((t) => t.status === 'archive')
+              : scope === 'working'
+                ? this.items.filter((t) => t.status !== 'backlog' && t.status !== 'archive')
+                : this.items;
+        return filterAndSort(base, this.filter, this.sort);
+      };
     },
   },
   actions: {

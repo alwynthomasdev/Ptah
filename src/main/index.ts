@@ -1,7 +1,9 @@
 import path from 'node:path';
-import { app, BrowserWindow, nativeTheme } from 'electron';
+import { pathToFileURL } from 'node:url';
+import { app, BrowserWindow, nativeTheme, net, protocol } from 'electron';
 import { registerIpc } from './ipc';
 import { loadConfig } from './config';
+import { getDataDir, resolveMediaPath, setDataDir } from './appState';
 
 // Bundled to CommonJS, so `__dirname` is available natively.
 // dist-electron/main -> project root
@@ -9,6 +11,15 @@ const ROOT = path.join(__dirname, '../..');
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
 process.env.APP_ROOT = ROOT;
+
+// Must be called before `app.whenReady()`. Lets rendered Markdown load a
+// ticket's local images via `ptah-media://media/<project>/<id>/<file>`.
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'ptah-media',
+    privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
+  },
+]);
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -36,7 +47,19 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
   const config = await loadConfig();
+  setDataDir(config.dataDir);
   nativeTheme.themeSource = config.theme;
+
+  protocol.handle('ptah-media', async (request) => {
+    const resolved = resolveMediaPath(getDataDir(), request.url);
+    if (!resolved) return new Response(null, { status: 400 });
+    try {
+      return await net.fetch(pathToFileURL(resolved).toString());
+    } catch {
+      return new Response(null, { status: 404 });
+    }
+  });
+
   await registerIpc();
   createWindow();
 

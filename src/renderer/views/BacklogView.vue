@@ -4,10 +4,5 @@ const emit = defineEmits<{ changed: [] }>();
 </script>
 
 <template>
-  <TicketBrowser
-    title="Backlog"
-    scope="backlog"
-    empty="Backlog is empty."
-    @changed="emit('changed')"
-  />
+  <TicketBrowser scope="backlog" variant="backlog" empty="Backlog is empty." @changed="emit('changed')" />
 </template>

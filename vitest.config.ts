@@ -1,9 +1,13 @@
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vitest/config';
+import vue from '@vitejs/plugin-vue';
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
 export default defineConfig({
+  // `as never`: @vitejs/plugin-vue types resolve against the root `vite`, which
+  // is a different copy from the one bundled in `vitest/config`. Runtime is fine.
+  plugins: [vue() as never],
   resolve: {
     alias: {
       '@renderer': r('./src/renderer'),

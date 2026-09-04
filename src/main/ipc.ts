@@ -1,9 +1,10 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron';
+import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { AppContext } from '@core/AppContext';
 import { tryResult } from '@shared/result';
 import type { AppConfig } from '@shared/ipc';
 import { IPC } from '@shared/ipc';
 import { loadConfig, saveConfig } from './config';
+import { setDataDir } from './appState';
 
 /**
  * Registers every IPC handler once, at startup. Each handler wraps its work in
@@ -14,6 +15,7 @@ import { loadConfig, saveConfig } from './config';
  */
 export async function registerIpc(): Promise<void> {
   let config: AppConfig = await loadConfig();
+  setDataDir(config.dataDir);
   let context = new AppContext(config.dataDir);
   await context.init();
 
@@ -30,6 +32,7 @@ export async function registerIpc(): Promise<void> {
 
   h(IPC.configSetDataDir, async (dir) => {
     config = await saveConfig({ ...config, dataDir: String(dir) });
+    setDataDir(config.dataDir);
     context = new AppContext(config.dataDir);
     await context.init();
     return config;
@@ -44,6 +47,7 @@ export async function registerIpc(): Promise<void> {
     });
     if (picked.canceled || picked.filePaths.length === 0) return null;
     config = await saveConfig({ ...config, dataDir: picked.filePaths[0] });
+    setDataDir(config.dataDir);
     context = new AppContext(config.dataDir);
     await context.init();
     return config;
@@ -63,6 +67,13 @@ export async function registerIpc(): Promise<void> {
   h(IPC.ticketsCreate, (input) => context.tickets.create(input as never));
   h(IPC.ticketsUpdate, (id, patch) => context.tickets.update(String(id), patch as never));
   h(IPC.ticketsDelete, (id) => context.tickets.delete(String(id)));
+
+  // ---- system ------------------------------------------------------
+  h(IPC.systemOpenExternal, async (url) => {
+    const u = String(url);
+    if (!/^(https?:|mailto:)/i.test(u)) throw new Error(`Refused to open non-web URL: ${u}`);
+    await shell.openExternal(u);
+  });
 
   // ---- recycle bin -------------------------------------------------
   h(IPC.binList, () => context.recycleBin.list());

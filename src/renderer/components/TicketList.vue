@@ -1,77 +1,140 @@
 <script setup lang="ts">
+import type { CSSProperties } from 'vue';
 import type { Ticket } from '@models/Ticket';
 import { PRIORITY_LABELS, STATUS_LABELS } from '@models/Ticket';
 import { formatDate, isOverdue } from '@shared/dates';
 
-defineProps<{ tickets: Ticket[]; empty?: string }>();
+const props = defineProps<{
+  tickets: Ticket[];
+  /**
+   * Column set:
+   *  - list:    ID · Title · Status · Priority · Labels · Due
+   *  - backlog: ID · Title · Priority · Labels · Created
+   *  - archive: ID · Title · Priority · Labels · Created
+   */
+  variant: 'list' | 'backlog' | 'archive';
+  empty?: string;
+}>();
 const emit = defineEmits<{ open: [ticket: Ticket]; remove: [ticket: Ticket] }>();
+
+const dateHeading = props.variant === 'list' ? 'Due' : 'Created';
+
+function pillStyle(t: Ticket): CSSProperties {
+  return {
+    background: `var(--${t.status})`,
+    color: t.status === 'wip' ? 'var(--status-fg-wip)' : 'var(--status-fg)',
+  };
+}
 </script>
 
 <template>
   <div v-if="tickets.length === 0" class="muted pad">{{ empty ?? 'No tickets.' }}</div>
-  <ul v-else class="list">
-    <li v-for="t in tickets" :key="t.id" class="card item" @click="emit('open', t)">
-      <span
-        class="prio"
-        :style="{ background: `var(--prio-${t.priority})` }"
-        :title="PRIORITY_LABELS[t.priority]"
-      />
-      <span class="id">{{ t.id }}</span>
-      <span class="title">{{ t.title }}</span>
-      <span v-for="l in t.labels" :key="l" class="tag">{{ l }}</span>
-      <span class="spacer" />
-      <span v-if="t.due" class="tag" :class="{ overdue: isOverdue(t.due) }">
-        due {{ formatDate(t.due) }}
-      </span>
-      <span class="tag">{{ STATUS_LABELS[t.status] }}</span>
-      <button class="ghost small" title="Delete" @click.stop="emit('remove', t)">🗑</button>
-    </li>
-  </ul>
+  <table v-else class="list-table">
+    <thead>
+      <tr>
+        <th class="col-id">ID</th>
+        <th>Title</th>
+        <th v-if="variant === 'list'">Status</th>
+        <th>Priority</th>
+        <th>Labels</th>
+        <th>{{ dateHeading }}</th>
+        <th class="col-trash" aria-hidden="true" />
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="t in tickets" :key="t.id" @click="emit('open', t)">
+        <td class="card-id">{{ t.id }}</td>
+        <td class="cell-title">{{ t.title }}</td>
+        <td v-if="variant === 'list'">
+          <span class="status-pill" :style="pillStyle(t)">{{ STATUS_LABELS[t.status] }}</span>
+        </td>
+        <td :style="{ color: `var(--p-${t.priority})` }">{{ PRIORITY_LABELS[t.priority] }}</td>
+        <td>
+          <span v-for="l in t.labels" :key="l" class="label">{{ l }}</span>
+        </td>
+        <td
+          v-if="variant === 'list'"
+          class="due"
+          :class="{ overdue: isOverdue(t.due) }"
+        >
+          {{ formatDate(t.due) }}
+        </td>
+        <td v-else>{{ formatDate(t.created) }}</td>
+        <td class="col-trash">
+          <button class="ghost trash" title="Delete" @click.stop="emit('remove', t)">🗑</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </template>
 
 <style scoped>
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.list-table {
+  width: 100%;
+  border-collapse: collapse;
 }
-.item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+.list-table th {
+  text-align: left;
+  font-size: 10.5px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-weight: 600;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.list-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+}
+.list-table tbody tr {
   cursor: pointer;
 }
-.item:hover {
-  border-color: var(--accent);
+.list-table tbody tr:hover td {
+  background: var(--surface);
 }
-.prio {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: none;
+.card-id {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
 }
-.id {
-  font-variant-numeric: tabular-nums;
-  color: var(--text-muted);
-  font-size: 12px;
-  min-width: 68px;
+.cell-title {
+  color: var(--text);
 }
-.title {
-  font-weight: 500;
+.status-pill {
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  display: inline-block;
 }
-.overdue {
-  color: #fff;
-  background: var(--danger);
-  border-color: var(--danger);
+.label + .label {
+  margin-left: 4px;
 }
-.small {
+.due {
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.due.overdue {
+  color: var(--p-highest);
+}
+.col-id {
+  width: 1%;
+}
+.col-trash {
+  width: 1%;
+  text-align: right;
+}
+.trash {
   padding: 2px 6px;
+  opacity: 0;
+}
+.list-table tbody tr:hover .trash {
+  opacity: 1;
 }
 .pad {
-  padding: 24px;
+  padding: 24px 0;
 }
 </style>

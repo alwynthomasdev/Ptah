@@ -4,10 +4,5 @@ const emit = defineEmits<{ changed: [] }>();
 </script>
 
 <template>
-  <TicketBrowser
-    title="Archive"
-    scope="archive"
-    empty="Nothing archived."
-    @changed="emit('changed')"
-  />
+  <TicketBrowser scope="archive" variant="archive" empty="Nothing archived." @changed="emit('changed')" />
 </template>

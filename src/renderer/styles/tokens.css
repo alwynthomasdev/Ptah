@@ -1,41 +1,86 @@
 /* Theme tokens. Light values on :root; dark overrides under [data-theme='dark'].
-   The renderer sets data-theme on <html> from the settings store. */
+   The renderer sets data-theme on <html> from the settings store.
+   Palette mirrors design/ptah-mockup.html. */
 
 :root {
-  --bg: #f6f7f9;
+  --sans: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif;
+  --mono: 'SF Mono', 'JetBrains Mono', Consolas, Menlo, monospace;
+
+  /* core — light (cream) */
+  --bg: #f3f2ee;
   --surface: #ffffff;
-  --surface-2: #eef0f3;
-  --border: #d9dce1;
-  --text: #1d2126;
-  --text-muted: #6b7280;
-  --accent: #2f6feb;
-  --accent-contrast: #ffffff;
+  --surface-2: #ebe9e3;
+  --border: #dcd9d1;
+  --text: #23241f;
+  --text-dim: #6b6a63;
+  --text-faint: #9a988f;
+  --accent: #a3811c;
+  --accent-dim: #cbb672;
+  --accent-contrast: var(--bg);
+
+  /* status — identical in both themes */
+  --backlog: #6b7280;
+  --scheduled: #4f8ff0;
+  --wip: #c9a227;
+  --paused: #b4783a;
+  --done: #4caf7d;
+  --archive: #8b7bb0;
+
+  /* priority — identical in both themes */
+  --p-lowest: #4a5261;
+  --p-low: #4f8ff0;
+  --p-medium: #c9a227;
+  --p-high: #d9773f;
+  --p-highest: #d9483f;
+
+  /* text drawn on top of a status pill (fixed, theme-independent) */
+  --status-fg: #ffffff;
+  --status-fg-wip: #1a1e25;
+
+  /* modal backdrop */
+  --overlay: rgba(0, 0, 0, 0.4);
+
+  /* rendered Markdown: code + syntax highlight (light) */
+  --code-bg: #f4f2ec;
+  --code-border: #e0ddd3;
+  --code-text: #3a3a34;
+  --syntax-keyword: #a3811c;
+  --syntax-string: #3c8a5a;
+  --syntax-comment: #9a988f;
+  --syntax-number: #c2703a;
+  --syntax-name: #3a6fb0;
+
+  /* semantic — still used by button.danger and dialog errors */
   --danger: #d64545;
   --ok: #2f9e44;
   --warn: #d9820b;
 
   --radius: 6px;
   --gap: 12px;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
-
-  --prio-lowest: #8a94a6;
-  --prio-low: #4c9be8;
-  --prio-medium: #2f9e44;
-  --prio-high: #d9820b;
-  --prio-highest: #d64545;
 }
 
 :root[data-theme='dark'] {
-  --bg: #16181d;
-  --surface: #1e2127;
-  --surface-2: #262a31;
-  --border: #333842;
-  --text: #e6e8eb;
-  --text-muted: #9aa1ab;
-  --accent: #4c8dff;
-  --accent-contrast: #0d1117;
+  --bg: #14171c;
+  --surface: #1a1e25;
+  --surface-2: #20242c;
+  --border: #2a2f39;
+  --text: #e6e9ee;
+  --text-dim: #8b93a1;
+  --text-faint: #5b6272;
+  --accent: #c9a227;
+  --accent-dim: #7a6a2e;
+  --accent-contrast: var(--bg);
+
   --danger: #e06c6c;
   --ok: #4cb963;
   --warn: #e0a13c;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  --code-bg: #12151a;
+  --code-border: #2a2f39;
+  --code-text: #d6d9df;
+  --syntax-keyword: #c9a227;
+  --syntax-string: #6fcf97;
+  --syntax-comment: #5b6272;
+  --syntax-number: #e0a13c;
+  --syntax-name: #6ab0f3;
 }

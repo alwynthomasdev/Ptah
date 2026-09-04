@@ -5,8 +5,8 @@ const emit = defineEmits<{ changed: [] }>();
 
 <template>
   <TicketBrowser
-    title="All tickets"
-    scope="all"
+    scope="working"
+    variant="list"
     empty="No tickets in this project yet. Use “+ New ticket”."
     @changed="emit('changed')"
   />
