@@ -50,6 +50,11 @@ const api: PtahApi = {
     download: () => ipcRenderer.invoke(IPC.updatesDownload),
     install: () => ipcRenderer.invoke(IPC.updatesInstall),
   },
+  claude: {
+    detect: () => ipcRenderer.invoke(IPC.claudeDetect),
+    connect: (target) => ipcRenderer.invoke(IPC.claudeConnect, target),
+    disconnect: (target) => ipcRenderer.invoke(IPC.claudeDisconnect, target),
+  },
 };
 
 contextBridge.exposeInMainWorld('ptah', api);

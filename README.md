@@ -28,6 +28,9 @@ Named after the ancient Egyptian creator god.
 - **Import / export** — a single ticket as Markdown, or a `.zip` when it has
   attachments; a whole project as a `.zip` with or without attachments.
 - **Themes:** Light / Dark / System, persisted and applied before first paint.
+- **Claude integration** — connect Claude Code or Claude Desktop from Settings so Claude
+  can read, create, edit, and delete your tickets directly. See
+  [docs/claude-integration.md](./docs/claude-integration.md).
 
 ## Usage
 
@@ -78,6 +81,9 @@ ticket in it are removed, behind a confirmation.
   confirm, then the window reloads against the new folder. Your existing data is
   **not** moved or copied — it stays in the old folder.
 - **Import / export** panel — see below.
+- **Claude integration** — connect Claude Code and/or Claude Desktop with one click; see
+  [docs/claude-integration.md](./docs/claude-integration.md) for what it does, how to set
+  it up, and its limitations.
 
 ## Import / export
 

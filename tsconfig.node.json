@@ -30,6 +30,7 @@
     "src/storage/**/*.ts",
     "src/shared/**/*.ts",
     "src/models/**/*.ts",
+    "src/mcp/**/*.ts",
     "vite.config.ts",
     "vitest.config.ts"
   ]

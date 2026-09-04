@@ -8,7 +8,8 @@ Ptah is a cross-platform Electron desktop app (Vue 3 renderer) for personal
 ticket tracking. Every ticket is a Markdown file on disk (`~/Ptah` by default),
 so the storage format is a first-class, portable artifact — not an implementation
 detail. See `README.md` for the on-disk layout and `spec.md` for the full
-product spec.
+product spec. See `docs/claude-integration.md` for the Claude Code/Desktop MCP
+integration (Settings → "Claude integration").
 
 The build is delivered in milestones; the plan and current milestone status live
 in `~/.claude/plans/read-spec-md-plan-the-eager-babbage.md` and `CHANGELOG.md`.
@@ -95,6 +96,7 @@ Data flows: **renderer store → `window.ptah.*` → IPC → `src/main/ipc.ts` h
 | `src/core` | main | Services orchestrating repositories. `AppContext` wires one set of services for a given `dataDir`. |
 | `src/main`, `src/preload` | main | Window/lifecycle, IPC registration, the bridge. |
 | `src/renderer` | renderer | Vue 3 + Pinia + vue-router (hash history). Stores call `window.ptah`; components never do. |
+| `src/mcp` | both, split | `src/mcp/server/**` is the bundled MCP server (esbuild → `dist-electron/mcp/index.js`), invoked externally under `ELECTRON_RUN_AS_NODE` — **must never import `electron`**. `src/mcp/integration.ts` is main-process-only, *may* import `electron`, and is only ever imported by `src/main/ipc.ts`. |
 
 Path aliases: `@models`/`@shared` resolve everywhere; `@main`/`@core`/`@storage`
 resolve only in the main-side build and in tests. Keeping `models`/`shared`

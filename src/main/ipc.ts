@@ -6,6 +6,8 @@ import { IPC } from '@shared/ipc';
 import { loadConfig, saveConfig } from './config';
 import { setDataDir } from './appState';
 import { checkForUpdate, downloadUpdate, installUpdate } from './updater';
+import { connect as claudeConnect, detect as claudeDetect, disconnect as claudeDisconnect } from '../mcp/integration';
+import type { ClaudeTarget } from '@shared/ipc';
 
 /**
  * Registers every IPC handler once, at startup. Each handler wraps its work in
@@ -181,4 +183,9 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle(IPC.updatesCheck, () => checkForUpdate());
   ipcMain.handle(IPC.updatesDownload, () => downloadUpdate());
   h(IPC.updatesInstall, () => installUpdate());
+
+  // ---- Claude integration --------------------------------------------
+  h(IPC.claudeDetect, () => claudeDetect());
+  h(IPC.claudeConnect, (target) => claudeConnect(target as ClaudeTarget));
+  h(IPC.claudeDisconnect, (target) => claudeDisconnect(target as ClaudeTarget));
 }

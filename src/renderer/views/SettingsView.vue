@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import type { UpdateInfo } from '@shared/ipc';
+import { onMounted, ref } from 'vue';
+import type { ClaudeDetectResult, ClaudeTarget, UpdateInfo } from '@shared/ipc';
 import { useSettingsStore } from '../stores/settings';
 import { useProjectsStore } from '../stores/projects';
 import { call, ptah } from '../api';
@@ -83,6 +83,43 @@ async function changeDataDir() {
   }
 }
 
+const claudeStatus = ref<ClaudeDetectResult | null>(null);
+const claudeBusy = ref<Record<ClaudeTarget, boolean>>({ code: false, desktop: false });
+const claudeErr = ref<Record<ClaudeTarget, string | null>>({ code: null, desktop: null });
+
+const claudeLabels: Record<ClaudeTarget, string> = { code: 'Claude Code', desktop: 'Claude Desktop' };
+
+async function refreshClaudeStatus() {
+  try {
+    claudeStatus.value = await call(ptah.claude.detect());
+  } catch {
+    claudeStatus.value = null;
+  }
+}
+
+async function toggleClaude(target: ClaudeTarget) {
+  const status = claudeStatus.value?.[target];
+  if (!status) return;
+  claudeBusy.value[target] = true;
+  claudeErr.value[target] = null;
+  try {
+    if (status.connected) {
+      await call(ptah.claude.disconnect(target));
+    } else {
+      await call(ptah.claude.connect(target));
+    }
+    await refreshClaudeStatus();
+  } catch (e) {
+    claudeErr.value[target] = e instanceof Error ? e.message : String(e);
+  } finally {
+    claudeBusy.value[target] = false;
+  }
+}
+
+onMounted(() => {
+  refreshClaudeStatus();
+});
+
 const checking = ref(false);
 const checkMsg = ref<string | null>(null);
 const checkErr = ref<string | null>(null);
@@ -159,6 +196,46 @@ async function installUpdate() {
         Tickets are stored here as Markdown files. Choosing a new folder asks you to confirm, then
         reloads Ptah to read from it. Your existing data stays where it is — it is not moved or
         copied.
+      </p>
+    </div>
+
+    <div class="card block">
+      <h3>Claude integration</h3>
+
+      <ul v-if="claudeStatus" class="claude-list">
+        <li v-for="target in (['code', 'desktop'] as ClaudeTarget[])" :key="target" class="claude-row">
+          <div class="claude-info">
+            <span class="claude-name">{{ claudeLabels[target] }}</span>
+            <span class="muted small">
+              <template v-if="!claudeStatus[target].installed">Not installed</template>
+              <template v-else-if="claudeStatus[target].connected">Connected</template>
+              <template v-else>Not connected</template>
+            </span>
+          </div>
+          <button
+            type="button"
+            :disabled="!claudeStatus[target].installed || claudeBusy[target]"
+            @click="toggleClaude(target)"
+          >
+            {{ claudeBusy[target] ? 'Working…' : claudeStatus[target].connected ? 'Disconnect' : 'Connect' }}
+          </button>
+        </li>
+      </ul>
+      <p v-if="claudeStatus && !claudeStatus.code.installed" class="muted small">
+        Claude Code isn't installed on this machine.
+      </p>
+      <p v-if="claudeStatus && !claudeStatus.desktop.installed" class="muted small">
+        Claude Desktop isn't installed on this machine.
+      </p>
+      <p v-if="claudeErr.code" class="err small">Claude Code: {{ claudeErr.code }}</p>
+      <p v-if="claudeErr.desktop" class="err small">Claude Desktop: {{ claudeErr.desktop }}</p>
+
+      <p class="muted small">
+        Connecting registers Ptah as an MCP server so Claude can read, create, edit, and delete your
+        tickets directly. Syncing with other tools (e.g. Jira) is not something Ptah does — Claude can
+        do that itself if it has other MCP servers connected. If Ptah's window is open while Claude
+        edits a ticket, this window won't automatically refresh yet — switch views or reload to see
+        the change.
       </p>
     </div>
 
@@ -329,5 +406,31 @@ h3 {
 }
 .danger {
   color: var(--danger);
+}
+.claude-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.claude-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.claude-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.claude-name {
+  color: var(--text);
+  font-size: 13px;
 }
 </style>

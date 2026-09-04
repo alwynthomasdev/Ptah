@@ -10,6 +10,12 @@ All notable changes to Ptah are documented here. The format follows
 - A default `TODO` project is always present — created automatically on first launch and on every data-dir switch (idempotent; never overwrites an existing TODO project's name, counter, or tickets).
 - Sidebar quick-add: a single input pinned above the Projects list creates a ticket in the TODO project on Enter, no dialog needed.
 
+### Added — Claude integration
+- Ptah can register itself as a local [MCP](https://modelcontextprotocol.io) server for Claude Code and/or Claude Desktop, giving Claude six tools to list, read, create, update, and (soft-)delete tickets and to list projects — all against the same data directory Ptah itself is pointed at.
+- A "Claude integration" card in Settings shows each target's status (Not installed / Not connected / Connected) and connects or disconnects it with one click; Connect registers the server via `claude mcp add` for Claude Code, or by writing into `claude_desktop_config.json` for Claude Desktop.
+- `window.ptah.claude.{detect,connect,disconnect}` IPC surface, backed by `src/mcp/integration.ts`; the MCP server itself is bundled separately via `npm run build:mcp` (esbuild) into `dist-electron/mcp/index.js` and run under `ELECTRON_RUN_AS_NODE`, so no separate Node.js install is required.
+- `docs/claude-integration.md`: setup, what the tools do, manual configuration for non-standard installs, and known limitations.
+
 ## [0.2.0] - 2026-09-04
 
 ### Added — Software updates

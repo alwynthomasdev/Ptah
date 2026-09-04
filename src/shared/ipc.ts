@@ -14,6 +14,20 @@ export interface UpdateInfo {
   releaseNotes?: string;
 }
 
+/** A Claude integration target: the CLI or the desktop app. */
+export type ClaudeTarget = 'code' | 'desktop';
+
+/** Install/connection status for one Claude target. Canonical definition — `src/mcp/integration.ts` imports these. */
+export interface ClaudeStatus {
+  installed: boolean;
+  connected: boolean;
+}
+
+export interface ClaudeDetectResult {
+  code: ClaudeStatus;
+  desktop: ClaudeStatus;
+}
+
 /** IPC channel names. One place so preload and main can't drift. */
 export const IPC = {
   configGet: 'config:get',
@@ -51,6 +65,10 @@ export const IPC = {
   updatesCheck: 'updates:check',
   updatesDownload: 'updates:download',
   updatesInstall: 'updates:install',
+
+  claudeDetect: 'claude:detect',
+  claudeConnect: 'claude:connect',
+  claudeDisconnect: 'claude:disconnect',
 } as const;
 
 /**
@@ -112,5 +130,13 @@ export interface PtahApi {
     download(): Promise<Result<void>>;
     /** Quit and install the downloaded update. */
     install(): Promise<Result<void>>;
+  };
+  claude: {
+    /** Installed/connected status for both Claude Code and Claude Desktop. */
+    detect(): Promise<Result<ClaudeDetectResult>>;
+    /** Register Ptah's MCP server with the given target. */
+    connect(target: ClaudeTarget): Promise<Result<ClaudeStatus>>;
+    /** Unregister Ptah's MCP server from the given target. */
+    disconnect(target: ClaudeTarget): Promise<Result<ClaudeStatus>>;
   };
 }

@@ -9,7 +9,7 @@ import type { AppConfig } from '@shared/ipc';
  * preference — everything else lives in the data directory itself.
  */
 
-function configPath(): string {
+export function configPath(): string {
   return path.join(app.getPath('userData'), 'config.json');
 }
 
