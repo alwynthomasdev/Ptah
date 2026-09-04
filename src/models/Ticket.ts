@@ -49,6 +49,8 @@ export interface Ticket {
   /** ISO-8601 date/timestamp, or null when no due date is set. */
   due: string | null;
   labels: string[];
+  /** Reference links attached to the ticket, order-preserved as curated by the user. */
+  urls: string[];
   /** Markdown body. */
   description: string;
   /**
@@ -68,12 +70,13 @@ export interface NewTicketInput {
   priority?: Priority;
   due?: string | null;
   labels?: string[];
+  urls?: string[];
   description?: string;
 }
 
 /** Mutable fields on an existing ticket. */
 export type TicketPatch = Partial<
-  Pick<Ticket, 'title' | 'status' | 'priority' | 'due' | 'labels' | 'description'>
+  Pick<Ticket, 'title' | 'status' | 'priority' | 'due' | 'labels' | 'urls' | 'description'>
 >;
 
 export function isStatus(v: unknown): v is Status {
@@ -107,6 +110,7 @@ export function createTicket(id: string, input: NewTicketInput, now: Date = new 
     created: now.toISOString(),
     due: input.due ?? null,
     labels: normalizeLabels(input.labels ?? []),
+    urls: normalizeUrls(input.urls ?? []),
     description: input.description ?? '',
     attachments: [],
     deletedAt: null,
@@ -131,6 +135,7 @@ export function applyPatch(ticket: Ticket, patch: TicketPatch): Ticket {
   }
   if (patch.due !== undefined) next.due = patch.due;
   if (patch.labels !== undefined) next.labels = normalizeLabels(patch.labels);
+  if (patch.urls !== undefined) next.urls = normalizeUrls(patch.urls);
   if (patch.description !== undefined) next.description = patch.description;
   return next;
 }
@@ -146,4 +151,22 @@ export function normalizeLabels(labels: string[]): string[] {
     }
   }
   return out.sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Trim, drop empty entries, and dedupe by exact (case-sensitive) match.
+ * Unlike `normalizeLabels`, order is preserved: a URL list is an ordered set
+ * of references the user is curating, not an unordered tag set.
+ */
+export function normalizeUrls(urls: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of urls) {
+    const u = raw.trim();
+    if (u && !seen.has(u)) {
+      seen.add(u);
+      out.push(u);
+    }
+  }
+  return out;
 }

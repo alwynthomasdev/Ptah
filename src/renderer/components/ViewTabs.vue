@@ -1,10 +1,15 @@
 <script setup lang="ts">
-const views = [
-  { to: '/board', label: 'Swimlane' },
-  { to: '/list', label: 'List' },
-  { to: '/backlog', label: 'Backlog' },
-  { to: '/archive', label: 'Archive' },
-];
+import { computed } from 'vue';
+import { useTicketsStore } from '../stores/tickets';
+
+const tickets = useTicketsStore();
+
+const views = computed(() => [
+  { to: '/board', label: 'Swimlane', count: null as number | null },
+  { to: '/list', label: 'List', count: tickets.workingCount as number | null },
+  { to: '/backlog', label: 'Backlog', count: tickets.statusCounts.backlog as number | null },
+  { to: '/archive', label: 'Archive', count: null as number | null },
+]);
 </script>
 
 <template>
@@ -17,6 +22,7 @@ const views = [
       active-class="active"
     >
       {{ v.label }}
+      <span v-if="v.count !== null" class="count">{{ v.count }}</span>
     </RouterLink>
   </nav>
 </template>
@@ -43,5 +49,11 @@ const views = [
 .view-tab.active {
   color: var(--text);
   border-bottom-color: var(--accent);
+}
+.view-tab .count {
+  margin-left: 6px;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-family: var(--mono);
 }
 </style>

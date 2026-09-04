@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { Ticket } from '@models/Ticket';
-import { isPriority, isStatus, normalizeLabels } from '@models/Ticket';
+import { isPriority, isStatus, normalizeLabels, normalizeUrls } from '@models/Ticket';
 import { parseId } from '@shared/ids';
 import type { FileStore } from './FileStore';
 import { parseMarkdown, stringifyMarkdown } from './markdownFile';
@@ -126,6 +126,7 @@ export function ticketToMarkdown(ticket: Ticket): string {
     created: ticket.created,
     due: ticket.due ?? null,
     labels: ticket.labels,
+    urls: ticket.urls,
   };
   if (ticket.deletedAt) data.deletedAt = ticket.deletedAt;
   return stringifyMarkdown(data, ticket.description ?? '');
@@ -136,6 +137,7 @@ export function markdownToTicket(id: string, projectKey: string, raw: string): T
   const status = data.status;
   const priority = data.priority;
   const labels = Array.isArray(data.labels) ? data.labels.map(String) : [];
+  const urls = Array.isArray(data.urls) ? data.urls.map(String) : [];
   const due = data.due == null || data.due === '' ? null : String(data.due);
 
   return {
@@ -147,6 +149,7 @@ export function markdownToTicket(id: string, projectKey: string, raw: string): T
     created: String(data.created ?? new Date(0).toISOString()),
     due,
     labels: normalizeLabels(labels),
+    urls: normalizeUrls(urls),
     // Mirror stringifyMarkdown's body normalization so load(save(x)) === load(x).
     description: body.replace(/^\r?\n+/, '').trimEnd(),
     attachments: [],

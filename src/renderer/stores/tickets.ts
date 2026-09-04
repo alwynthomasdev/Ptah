@@ -52,6 +52,14 @@ export const useTicketsStore = defineStore('tickets', {
       for (const t of s.items) if (inProjectScope(t, s.filter)) counts[t.status] += 1;
       return counts;
     },
+    /** Working-set size (excludes backlog/archive) across the project scope. */
+    workingCount(s): number {
+      let n = 0;
+      for (const t of s.items) {
+        if (inProjectScope(t, s.filter) && t.status !== 'backlog' && t.status !== 'archive') n += 1;
+      }
+      return n;
+    },
     /** Sorted, distinct labels across the project scope. */
     labelsInView(s): string[] {
       const seen = new Set<string>();

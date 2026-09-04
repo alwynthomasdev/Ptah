@@ -6,6 +6,20 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+### Added — Quick tweaks
+- Tickets now carry an ordered `urls` list (reference links), editable in the ticket form and shown as clickable links on the ticket page.
+- Status filter chip in the toolbar, alongside Priority/Labels/Project.
+- A search box in the Labels filter chip (`FilterChip` gained an opt-in `searchable` mode).
+- Ticket counts on the List (working set) and Backlog tabs.
+- A "Projects" section in Settings listing every project with a Delete action.
+- Creating a ticket while viewing "All projects" now prompts for a project instead of being disabled.
+
+### Changed — Quick tweaks
+- The ticket dialog is now create-only; viewing/editing a ticket opens a routed `/ticket/:id` page instead of a modal, defaulting to a read-only preview with Edit/Delete/Export actions.
+- The sidebar dropped the "Views" and "Filter by label" sections — it's now just Projects plus standalone Settings and Recycle bin links; clicking a project (or "All projects") now navigates straight to the Swimlane board.
+- Project deletion moved from a hover "✕" icon on each sidebar row to the new Projects section in Settings.
+- Swimlane lanes now flex to fill available width (with a minimum floor) instead of a fixed 280px, still horizontal-scrolling when squeezed.
+
 ### Added — Milestone 4: Theming, packaging, docs
 - App icon (`build/icon.png`) wired into the packaged build: Windows/macOS/Linux installer icons via `electron-builder.yml`, and the `BrowserWindow` icon at runtime (dev vs packaged path).
 - Pre-paint theme boot script (`public/theme-boot.js`) reads a `localStorage` mirror of the theme choice and stamps `data-theme` before Vue mounts, eliminating the light/dark flash on launch.

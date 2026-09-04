@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { SortKey } from '@models/Filter';
-import type { Priority } from '@models/Ticket';
-import { PRIORITIES, PRIORITY_LABELS } from '@models/Ticket';
+import type { Priority, Status } from '@models/Ticket';
+import { PRIORITIES, PRIORITY_LABELS, STATUSES, STATUS_LABELS } from '@models/Ticket';
 import { useTicketsStore } from '../stores/tickets';
 import { useProjectsStore } from '../stores/projects';
 import FilterChip from './FilterChip.vue';
@@ -27,14 +27,19 @@ function toggleDir() {
   tickets.setSort({ key: tickets.sort.key, dir: tickets.sort.dir === 'asc' ? 'desc' : 'asc' });
 }
 
+const statusOptions = STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }));
 const priorityOptions = PRIORITIES.map((p) => ({ value: p, label: PRIORITY_LABELS[p] }));
 const labelOptions = computed(() => tickets.labelsInView.map((l) => ({ value: l, label: l })));
 const projectOptions = computed(() => projects.items.map((p) => ({ value: p.key, label: p.name })));
 
+const selectedStatuses = computed(() => tickets.filter.statuses ?? []);
 const selectedPriorities = computed(() => tickets.filter.priorities ?? []);
 const selectedLabels = computed(() => tickets.filter.labels ?? []);
 const selectedProjects = computed(() => tickets.filter.projects ?? []);
 
+function setStatuses(v: string[]) {
+  tickets.setFilter({ statuses: v.length ? (v as Status[]) : undefined });
+}
 function setPriorities(v: string[]) {
   tickets.setFilter({ priorities: v.length ? (v as Priority[]) : undefined });
 }
@@ -48,6 +53,7 @@ function setProjects(v: string[]) {
 const hasFilters = computed(
   () =>
     !!tickets.filter.text ||
+    !!tickets.filter.statuses?.length ||
     !!tickets.filter.labels?.length ||
     !!tickets.filter.priorities?.length ||
     !!tickets.filter.projects?.length,
@@ -56,6 +62,7 @@ const hasFilters = computed(
 function clearFilters() {
   tickets.setFilter({
     text: undefined,
+    statuses: undefined,
     labels: undefined,
     priorities: undefined,
     projects: undefined,
@@ -66,6 +73,12 @@ function clearFilters() {
 <template>
   <div class="toolbar">
     <FilterChip
+      label="Status"
+      :options="statusOptions"
+      :selected="selectedStatuses"
+      @update:selected="setStatuses"
+    />
+    <FilterChip
       label="Priority"
       :options="priorityOptions"
       :selected="selectedPriorities"
@@ -75,6 +88,7 @@ function clearFilters() {
       label="Labels"
       :options="labelOptions"
       :selected="selectedLabels"
+      :searchable="true"
       @update:selected="setLabels"
     />
     <FilterChip
@@ -99,7 +113,7 @@ function clearFilters() {
     <button v-if="hasFilters" class="chip clear" type="button" @click="clearFilters">Clear</button>
 
     <span class="spacer" />
-    <button class="primary btn-new" :disabled="!projects.activeKey" @click="emit('new')">
+    <button class="primary btn-new" :disabled="!projects.items.length" @click="emit('new')">
       + New ticket
     </button>
   </div>

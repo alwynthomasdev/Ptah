@@ -24,6 +24,11 @@ const routes = [
     component: () => import('../views/RecycleBinView.vue'),
   },
   {
+    path: '/ticket/:id',
+    name: 'ticket',
+    component: () => import('../views/TicketView.vue'),
+  },
+  {
     path: '/settings',
     name: 'settings',
     component: () => import('../views/SettingsView.vue'),

@@ -12,6 +12,7 @@ const tickets: Ticket[] = [
     id: 'PTAH-1',
     title: 'Fix login bug',
     priority: 'high',
+    status: 'wip',
     labels: ['bug'],
     created: '2026-01-01T00:00:00Z',
     due: '2026-02-01T00:00:00Z',
@@ -20,6 +21,7 @@ const tickets: Ticket[] = [
     id: 'PTAH-2',
     title: 'Write docs',
     priority: 'low',
+    status: 'backlog',
     labels: ['docs'],
     created: '2026-03-01T00:00:00Z',
     due: null,
@@ -29,6 +31,7 @@ const tickets: Ticket[] = [
     title: 'Bug triage',
     project: 'ACME',
     priority: 'highest',
+    status: 'done',
     labels: ['bug', 'ops'],
     created: '2026-02-01T00:00:00Z',
     due: '2026-01-15T00:00:00Z',
@@ -74,6 +77,15 @@ describe('matchesFilter', () => {
     ).toEqual(['PTAH-1', 'PTAH-2']);
   });
 
+  it('statuses restrict', () => {
+    expect(
+      tickets.filter((t) => matchesFilter(t, { statuses: ['backlog', 'wip'] })).map((t) => t.id),
+    ).toEqual(['PTAH-1', 'PTAH-2']);
+    expect(
+      tickets.filter((t) => matchesFilter(t, { statuses: ['done'] })).map((t) => t.id),
+    ).toEqual(['ACME-3']);
+  });
+
   it('all fields are ANDed together', () => {
     expect(
       tickets
@@ -89,9 +101,11 @@ describe('matchesFilter', () => {
   });
 
   it('an empty array field is not a constraint', () => {
-    expect(tickets.every((t) => matchesFilter(t, { labels: [], priorities: [], projects: [] }))).toBe(
-      true,
-    );
+    expect(
+      tickets.every((t) =>
+        matchesFilter(t, { labels: [], priorities: [], projects: [], statuses: [] }),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -166,5 +180,14 @@ describe('filterAndSort', () => {
   it('composes filtering then sorting', () => {
     const out = filterAndSort(tickets, { labels: ['bug'] }, { key: 'priority', dir: 'asc' });
     expect(out.map((t) => t.id)).toEqual(['PTAH-1', 'ACME-3']);
+  });
+
+  it('composes a statuses filter with sorting', () => {
+    const out = filterAndSort(
+      tickets,
+      { statuses: ['backlog', 'wip'] },
+      { key: 'priority', dir: 'desc' },
+    );
+    expect(out.map((t) => t.id)).toEqual(['PTAH-1', 'PTAH-2']);
   });
 });

@@ -59,4 +59,21 @@ describe('ticket <-> markdown', () => {
     expect(t.priority).toBe('medium');
     expect(t.title).toBe('PTAH-9');
   });
+
+  it('falls back to an empty array when urls is missing or not an array', () => {
+    expect(markdownToTicket('PTAH-9', 'PTAH', '---\nstatus: wip\n---\nbody').urls).toEqual([]);
+    expect(
+      markdownToTicket('PTAH-9', 'PTAH', '---\nurls: "https://a.com"\n---\nbody').urls,
+    ).toEqual([]);
+    expect(markdownToTicket('PTAH-9', 'PTAH', '---\nurls: 42\n---\nbody').urls).toEqual([]);
+  });
+
+  it('parses and normalizes a valid urls array, preserving order', () => {
+    const t = markdownToTicket(
+      'PTAH-9',
+      'PTAH',
+      '---\nurls:\n  - https://z.com\n  - https://a.com\n  - https://z.com\n---\nbody',
+    );
+    expect(t.urls).toEqual(['https://z.com', 'https://a.com']);
+  });
 });

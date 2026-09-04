@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import type { Ticket } from '@models/Ticket';
+import { useRouter } from 'vue-router';
 import type { ListScope } from '../stores/tickets';
 import { useTicketsStore } from '../stores/tickets';
 import { call, ptah } from '../api';
 import TicketList from './TicketList.vue';
-import TicketDialog from './TicketDialog.vue';
 
 const props = defineProps<{
   /** Which slice of statuses this view shows. */
@@ -17,7 +17,7 @@ const props = defineProps<{
 const emit = defineEmits<{ changed: [] }>();
 
 const tickets = useTicketsStore();
-const editing = ref<Ticket | null>(null);
+const router = useRouter();
 
 const shown = computed(() => tickets.scopedList(props.scope));
 
@@ -31,9 +31,8 @@ async function exportTicket(t: Ticket) {
   await call(ptah.io.exportTicket(t.id));
 }
 
-function onSaved() {
-  editing.value = null;
-  emit('changed');
+function open(t: Ticket) {
+  router.push({ name: 'ticket', params: { id: t.id } });
 }
 </script>
 
@@ -43,17 +42,9 @@ function onSaved() {
       :tickets="shown"
       :variant="variant"
       :empty="empty"
-      @open="editing = $event"
+      @open="open"
       @remove="remove"
       @export="exportTicket"
-    />
-
-    <TicketDialog
-      v-if="editing"
-      mode="edit"
-      :ticket="editing"
-      @close="editing = null"
-      @saved="onSaved"
     />
   </section>
 </template>

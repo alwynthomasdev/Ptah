@@ -18,6 +18,25 @@ const ioBusy = ref(false);
 const ioMsg = ref<string | null>(null);
 const ioErr = ref<string | null>(null);
 
+const projectsError = ref<string | null>(null);
+
+async function deleteProject(p: { key: string; name: string }) {
+  if (
+    !confirm(
+      `Permanently delete project "${p.name}" and all its tickets? This cannot be undone and does not use the recycle bin.`,
+    )
+  ) {
+    return;
+  }
+  projectsError.value = null;
+  try {
+    await projects.remove(p.key);
+    emit('changed');
+  } catch (e) {
+    projectsError.value = e instanceof Error ? e.message : String(e);
+  }
+}
+
 async function exportProject() {
   if (!exportKey.value) return;
   ioBusy.value = true;
@@ -82,6 +101,23 @@ async function changeDataDir() {
         reloads Ptah to read from it. Your existing data stays where it is — it is not moved or
         copied.
       </p>
+    </div>
+
+    <div class="card block">
+      <h3>Projects</h3>
+
+      <div v-if="projects.items.length === 0" class="muted small">No projects yet.</div>
+      <ul v-else class="project-list">
+        <li v-for="p in projects.items" :key="p.key">
+          <span class="proj-name">{{ p.name }}</span>
+          <span class="proj-key mono">{{ p.key }}</span>
+          <span class="spacer" />
+          <button type="button" class="ghost small danger" @click="deleteProject(p)">
+            Delete
+          </button>
+        </li>
+      </ul>
+      <p v-if="projectsError" class="err small">{{ projectsError }}</p>
     </div>
 
     <div class="card block">
@@ -174,5 +210,32 @@ h3 {
   gap: 6px;
   font-size: 13px;
   color: var(--text-dim);
+}
+.project-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.project-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.proj-name {
+  color: var(--text);
+  font-size: 13px;
+}
+.proj-key {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.danger {
+  color: var(--danger);
 }
 </style>

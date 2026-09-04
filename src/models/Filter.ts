@@ -1,4 +1,4 @@
-import type { Priority, Ticket } from './Ticket';
+import type { Priority, Status, Ticket } from './Ticket';
 import { PRIORITY_RANK } from './Ticket';
 
 /** Descriptor for filtering a ticket list. All fields are ANDed together. */
@@ -11,6 +11,8 @@ export interface TicketFilter {
   projects?: string[];
   /** Restrict to these priorities. */
   priorities?: Priority[];
+  /** Restrict to these statuses. */
+  statuses?: Status[];
 }
 
 export type SortKey = 'priority' | 'created' | 'due';
@@ -34,6 +36,9 @@ export function matchesFilter(ticket: Ticket, filter: TicketFilter): boolean {
   }
   if (filter.priorities && filter.priorities.length) {
     if (!filter.priorities.includes(ticket.priority)) return false;
+  }
+  if (filter.statuses && filter.statuses.length) {
+    if (!filter.statuses.includes(ticket.status)) return false;
   }
   return true;
 }

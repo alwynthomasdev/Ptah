@@ -5,7 +5,7 @@ import { useProjectsStore } from '../stores/projects';
 import { useTicketsStore } from '../stores/tickets';
 
 const props = defineProps<{ projects: Project[]; active: string | null }>();
-const emit = defineEmits<{ change: [key: string | null]; created: []; deleted: [key: string] }>();
+const emit = defineEmits<{ change: [key: string | null]; created: [] }>();
 
 const store = useProjectsStore();
 const tickets = useTicketsStore();
@@ -38,22 +38,6 @@ async function submit() {
   }
 }
 
-async function remove(p: Project) {
-  if (
-    !confirm(
-      `Permanently delete project "${p.name}" and all its tickets? This cannot be undone and does not use the recycle bin.`,
-    )
-  ) {
-    return;
-  }
-  error.value = null;
-  try {
-    await store.remove(p.key);
-    emit('deleted', p.key);
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  }
-}
 </script>
 
 <template>
@@ -79,14 +63,6 @@ async function remove(p: Project) {
       <span class="proj-dot" :style="{ background: dotColor(i) }" />
       <span class="name">{{ p.name }}</span>
       <span class="count">{{ countFor(p.key) }}</span>
-      <button
-        type="button"
-        class="del"
-        title="Delete project"
-        @click.stop="remove(p)"
-      >
-        ✕
-      </button>
     </div>
 
     <div v-if="props.projects.length === 0" class="side-item empty">No projects yet</div>
@@ -158,21 +134,6 @@ async function remove(p: Project) {
   color: var(--text-faint);
   font-size: 11px;
   font-family: var(--mono);
-}
-.del {
-  border: none;
-  background: none;
-  color: var(--text-faint);
-  cursor: pointer;
-  font-size: 11px;
-  padding: 0 2px;
-  opacity: 0;
-}
-.side-item:hover .del {
-  opacity: 1;
-}
-.del:hover {
-  color: var(--danger);
 }
 .add {
   display: flex;

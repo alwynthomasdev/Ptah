@@ -49,7 +49,12 @@ describe('TicketRepository', () => {
   });
 
   it('saves a ticket as an .md file and reads it back', async () => {
-    const t = createTicket('PTAH-1', { title: 'First', project: 'PTAH', status: 'scheduled' });
+    const t = createTicket('PTAH-1', {
+      title: 'First',
+      project: 'PTAH',
+      status: 'scheduled',
+      urls: ['https://b.com', 'https://a.com'],
+    });
     await tickets.save(t);
 
     const file = store.ticketFile('PTAH', 'PTAH-1');
@@ -59,6 +64,7 @@ describe('TicketRepository', () => {
     const back = await tickets.get('PTAH-1');
     expect(back.title).toBe('First');
     expect(back.status).toBe('scheduled');
+    expect(back.urls).toEqual(['https://b.com', 'https://a.com']);
   });
 
   it('lists tickets for a project', async () => {

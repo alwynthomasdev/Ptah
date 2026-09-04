@@ -5,16 +5,15 @@
  * drag between lanes; a drop rewrites the ticket's status on disk.
  */
 import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import type { Status, Ticket } from '@models/Ticket';
 import { useTicketsStore } from '../stores/tickets';
 import TicketCard from '../components/TicketCard.vue';
-import TicketDialog from '../components/TicketDialog.vue';
 
 const DND_MIME = 'application/x-ptah-ticket';
 
-const emit = defineEmits<{ changed: [] }>();
 const tickets = useTicketsStore();
-const editing = ref<Ticket | null>(null);
+const router = useRouter();
 const pausedOpen = ref(true);
 const dropTarget = ref<Status | null>(null);
 const dndError = ref<string | null>(null);
@@ -56,9 +55,8 @@ async function onDrop(e: DragEvent, status: Status) {
   }
 }
 
-function onSaved() {
-  editing.value = null;
-  emit('changed');
+function open(t: Ticket) {
+  router.push({ name: 'ticket', params: { id: t.id } });
 }
 </script>
 
@@ -80,7 +78,7 @@ function onSaved() {
           @dragleave="onDragLeave(lane.key)"
           @drop.prevent="onDrop($event, lane.key)"
         >
-          <TicketCard v-for="t in lane.items" :key="t.id" :ticket="t" @open="editing = $event" />
+          <TicketCard v-for="t in lane.items" :key="t.id" :ticket="t" @open="open" />
         </div>
       </div>
     </div>
@@ -106,18 +104,10 @@ function onSaved() {
           :key="t.id"
           :ticket="t"
           class="dashed"
-          @open="editing = $event"
+          @open="open"
         />
       </div>
     </div>
-
-    <TicketDialog
-      v-if="editing"
-      mode="edit"
-      :ticket="editing"
-      @close="editing = null"
-      @saved="onSaved"
-    />
   </section>
 </template>
 
@@ -135,8 +125,8 @@ function onSaved() {
 .lane {
   display: flex;
   flex-direction: column;
-  flex: 0 0 280px;
-  width: 280px;
+  flex: 1 1 260px;
+  min-width: 260px;
 }
 .lane-head {
   display: flex;
