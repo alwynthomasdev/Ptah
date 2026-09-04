@@ -10,3 +10,4 @@ release/
 .claude/*
 !.claude/agents/
 coverage/
+!specs/

@@ -1,0 +1,13 @@
+# Quick Tweaks
+- Can I create tickets even when I am looking at all projects? and select the project when adding?
+- Get rid of the x delete icon on the project, put a delete button somewhere else
+- want to filter by status in the list view
+- don't like the labels filter in the side bar, don't like the views in the side bar either, just settings and projects is fine
+- Make the search bar more prominent in labels
+- can we have counts in backlog and list
+- make swim lanes fill available space, but have a mins space when squeezed with the horizontal scroll bar
+- Make the preview the default view when viewing a ticket
+- there seems to be no way to delete the ticket (recycle bin)
+- can we make the ticket a view/page not a dialog
+- Can we have a list of URL's as a property of the ticket
+- If I click on a project, it should take me to the swimlane by default
