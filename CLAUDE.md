@@ -13,6 +13,17 @@ product spec.
 The build is delivered in milestones; the plan and current milestone status live
 in `~/.claude/plans/read-spec-md-plan-the-eager-babbage.md` and `CHANGELOG.md`.
 
+## Git, CHANGELOG, and releases
+
+All git work goes through the **`git-manager`** subagent
+(`.claude/agents/git-manager.md`). Do not `git add` / `git commit` / edit
+`CHANGELOG.md` from the main loop. The agent maintains `CHANGELOG.md`'s
+`[Unreleased]` section as part of preparing each user-visible commit, and it
+never commits, tags, or packages a release without the user's explicit approval.
+Releases (`version` bump → dated CHANGELOG section → `Release vX.Y.Z` commit →
+`vX.Y.Z` tag → `npm run dist`) happen only when the user explicitly calls for
+one. No branching for now — single linear history.
+
 ## Commands
 
 ```bash
