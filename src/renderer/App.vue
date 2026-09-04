@@ -5,6 +5,7 @@ import { useSettingsStore } from './stores/settings';
 import { useProjectsStore } from './stores/projects';
 import { useTicketsStore } from './stores/tickets';
 import ProjectPicker from './components/ProjectPicker.vue';
+import QuickAddTask from './components/QuickAddTask.vue';
 import TicketDialog from './components/TicketDialog.vue';
 import TopBar from './components/TopBar.vue';
 import ViewTabs from './components/ViewTabs.vue';
@@ -64,6 +65,8 @@ async function onProjectCreated() {
     <TopBar />
 
     <aside class="sidebar scroll-thin">
+      <QuickAddTask />
+
       <div class="side-section">
         <div class="side-label">PROJECTS</div>
         <ProjectPicker

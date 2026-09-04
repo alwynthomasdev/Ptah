@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AppContext } from '@core/AppContext';
+import { DEFAULT_PROJECT_KEY } from '@models/Project';
 import { makeTmpDir } from '../helpers/tmp';
 
 let ctx: AppContext;
@@ -83,7 +84,35 @@ describe('recycle bin flow', () => {
     await ctx.projects.delete('PTAH');
 
     expect(await ctx.store.exists(ctx.store.projectDir('PTAH'))).toBe(false);
-    expect(await ctx.projects.list()).toHaveLength(0);
+    // The always-present TODO project (seeded by AppContext.init) remains.
+    expect(await ctx.projects.list()).toHaveLength(1);
     expect(await ctx.recycleBin.list()).toHaveLength(0);
+  });
+});
+
+describe('default project seeding', () => {
+  it('creates the TODO project on a fresh data dir', async () => {
+    const project = await ctx.projects.get(DEFAULT_PROJECT_KEY);
+    expect(project.key).toBe(DEFAULT_PROJECT_KEY);
+  });
+
+  it('a second init() does not clobber an existing TODO project', async () => {
+    const ticket = await ctx.tickets.create({ title: 'A', project: DEFAULT_PROJECT_KEY });
+    await ctx.projects.rename(DEFAULT_PROJECT_KEY, 'Renamed');
+
+    await ctx.init();
+
+    const project = await ctx.projects.get(DEFAULT_PROJECT_KEY);
+    expect(project.name).toBe('Renamed');
+    expect((await ctx.tickets.get(ticket.id)).id).toBe(ticket.id);
+  });
+
+  it('the ticket counter survives a second init()', async () => {
+    await ctx.tickets.create({ title: 'A', project: DEFAULT_PROJECT_KEY });
+    await ctx.tickets.create({ title: 'B', project: DEFAULT_PROJECT_KEY });
+
+    await ctx.init();
+
+    expect((await ctx.projects.get(DEFAULT_PROJECT_KEY)).counter).toBe(2);
   });
 });

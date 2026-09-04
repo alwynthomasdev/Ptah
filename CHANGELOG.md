@@ -6,6 +6,10 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- A default `TODO` project is always present — created automatically on first launch and on every data-dir switch (idempotent; never overwrites an existing TODO project's name, counter, or tickets).
+- Sidebar quick-add: a single input pinned above the Projects list creates a ticket in the TODO project on Enter, no dialog needed.
+
 ## [0.2.0] - 2026-09-04
 
 ### Added — Software updates

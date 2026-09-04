@@ -15,6 +15,9 @@ export interface Project {
 
 export const PROJECT_KEY_PATTERN = /^[A-Z][A-Z0-9]{1,9}$/;
 
+/** Every Ptah install always has this project; quick-add always targets it. */
+export const DEFAULT_PROJECT_KEY = 'TODO';
+
 export function isValidProjectKey(key: string): boolean {
   return PROJECT_KEY_PATTERN.test(key);
 }

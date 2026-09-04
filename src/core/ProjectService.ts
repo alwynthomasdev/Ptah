@@ -1,5 +1,5 @@
 import type { NewProjectInput, Project } from '@models/Project';
-import { createProject } from '@models/Project';
+import { createProject, DEFAULT_PROJECT_KEY } from '@models/Project';
 import type { ProjectRepository } from '@storage/ProjectRepository';
 
 /** Project lifecycle. Deleting a project is permanent and takes its tickets with it. */
@@ -36,5 +36,10 @@ export class ProjectService {
       throw new Error(`Project "${key}" not found.`);
     }
     await this.projects.delete(key);
+  }
+
+  async ensureDefaultProject(): Promise<void> {
+    if (await this.projects.exists(DEFAULT_PROJECT_KEY)) return;
+    await this.projects.create(createProject({ key: DEFAULT_PROJECT_KEY, name: 'To Do' }));
   }
 }
