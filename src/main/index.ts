@@ -6,11 +6,9 @@ import { loadConfig } from './config';
 import { getDataDir, resolveMediaPath, setDataDir } from './appState';
 
 // Bundled to CommonJS, so `__dirname` is available natively.
-// dist-electron/main -> project root
+// dist-electron/main -> project root (or app.asar root when packaged)
 const ROOT = path.join(__dirname, '../..');
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
-
-process.env.APP_ROOT = ROOT;
 
 // Must be called before `app.whenReady()`. Lets rendered Markdown load a
 // ticket's local images via `ptah-media://media/<project>/<id>/<file>`.
@@ -21,13 +19,21 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
+// Mirrors tokens.css --bg (dark / light). Kept in sync by hand — the main
+// process can't read the renderer's CSS variables.
+const BG_DARK = '#14171c';
+const BG_LIGHT = '#f3f2ee';
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1280,
     height: 820,
     minWidth: 900,
     minHeight: 600,
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#ffffff',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? BG_DARK : BG_LIGHT,
+    icon: app.isPackaged
+      ? path.join(process.resourcesPath, 'icon.png')
+      : path.join(ROOT, 'build/icon.png'),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
@@ -37,7 +43,7 @@ function createWindow(): void {
     },
   });
 
-  if (DEV_SERVER_URL) {
+  if (!app.isPackaged && DEV_SERVER_URL) {
     void win.loadURL(DEV_SERVER_URL);
     win.webContents.openDevTools({ mode: 'detach' });
   } else {

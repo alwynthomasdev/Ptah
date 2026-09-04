@@ -10,15 +10,34 @@ interface State {
   loaded: boolean;
 }
 
+/** localStorage key the pre-paint boot script (public/theme-boot.js) reads. */
+const THEME_KEY = 'ptah-theme';
+
+/** Resolve a theme choice to a concrete `light`/`dark`. Kept in sync with theme-boot.js. */
+export function resolveTheme(theme: Theme, prefersDark: boolean): 'light' | 'dark' {
+  if (theme === 'light' || theme === 'dark') return theme;
+  return prefersDark ? 'dark' : 'light';
+}
+
+function prefersDark(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
 function applyTheme(theme: Theme): void {
-  const root = document.documentElement;
-  const resolved =
-    theme === 'system'
-      ? window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light'
-      : theme;
-  root.setAttribute('data-theme', resolved);
+  document.documentElement.setAttribute('data-theme', resolveTheme(theme, prefersDark()));
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    /* private mode / storage disabled — the boot script just falls back to matchMedia */
+  }
+}
+
+// Bound once, at module load: re-resolve when the OS theme flips and we're on `system`.
+if (typeof window !== 'undefined') {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    const s = useSettingsStore();
+    if (s.theme === 'system') applyTheme('system');
+  });
 }
 
 export const useSettingsStore = defineStore('settings', {
@@ -30,9 +49,6 @@ export const useSettingsStore = defineStore('settings', {
       this.theme = cfg.theme;
       this.loaded = true;
       applyTheme(this.theme);
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-        if (this.theme === 'system') applyTheme('system');
-      });
     },
     async setTheme(theme: Theme) {
       const cfg = await call(ptah.config.setTheme(theme));

@@ -55,9 +55,9 @@ function toggle(value: string) {
   gap: 6px;
   padding: 5px 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   background: var(--surface);
   cursor: pointer;
 }
@@ -76,11 +76,11 @@ function toggle(value: string) {
 .chip-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: var(--z-dropdown);
 }
 .popover {
   position: absolute;
-  z-index: 41;
+  z-index: calc(var(--z-dropdown) + 1);
   top: calc(100% + 4px);
   left: 0;
   min-width: 170px;
@@ -88,7 +88,7 @@ function toggle(value: string) {
   overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 6px;
   display: flex;
   flex-direction: column;
@@ -99,10 +99,10 @@ function toggle(value: string) {
   align-items: center;
   gap: 8px;
   padding: 5px 6px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-dim);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .opt:hover {
   background: var(--surface-2);

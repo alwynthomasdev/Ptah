@@ -55,8 +55,37 @@
   --ok: #2f9e44;
   --warn: #d9820b;
 
+  /* radius scale — --radius is the workhorse (buttons, inputs, chips) */
+  --radius-sm: 4px;
   --radius: 6px;
-  --gap: 12px;
+  --radius-lg: 8px;
+  --radius-pill: 999px;
+
+  /* spacing scale — --gap stays as an alias so existing rules keep working */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --gap: var(--space-3);
+
+  /* type scale — the sizes components already use, named */
+  --fs-2xs: 10.5px;
+  --fs-xs: 11.5px;
+  --fs-sm: 12px;
+  --fs-md: 12.5px;
+  --fs-base: 13.5px;
+
+  /* stacking order */
+  --z-sticky: 10;
+  --z-dropdown: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+
+  /* interaction / state */
+  --hover-bg: var(--surface-2);
+  --focus-ring-color: var(--accent-dim);
+  --opacity-disabled: 0.5;
 }
 
 :root[data-theme='dark'] {
@@ -83,4 +112,7 @@
   --syntax-comment: #5b6272;
   --syntax-number: #e0a13c;
   --syntax-name: #6ab0f3;
+
+  /* one notch above --surface-2 (#20242c), still below --border */
+  --hover-bg: #232833;
 }

@@ -8,9 +8,16 @@ files:
   - dist/**/*
   - dist-electron/**/*
   - package.json
+# Shipped alongside the asar so the BrowserWindow can set its icon at runtime
+# (matters for Linux and the dev taskbar).
+extraResources:
+  - from: build/icon.png
+    to: icon.png
 win:
   target:
     - nsis
+  # electron-builder derives the multi-res .ico from this 1024² PNG.
+  icon: build/icon.png
   artifactName: ${productName}-${version}-Setup.${ext}
 nsis:
   oneClick: false
@@ -19,7 +26,10 @@ mac:
   target:
     - dmg
   category: public.app-category.productivity
+  # electron-builder derives the .icns from this PNG.
+  icon: build/icon.png
 linux:
   target:
     - AppImage
   category: Utility
+  icon: build/icon.png

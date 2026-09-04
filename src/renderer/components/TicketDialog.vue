@@ -176,14 +176,14 @@ async function submit() {
   background: var(--overlay);
   display: grid;
   place-items: center;
-  z-index: 50;
+  z-index: var(--z-overlay);
 }
 .dialog {
   width: min(680px, 92vw);
   max-height: 90vh;
   overflow: auto;
   padding: 16px 20px 20px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 h3 {
   margin: 4px 0;

@@ -6,6 +6,9 @@
   "license": "MIT",
   "private": true,
   "main": "dist-electron/main/index.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit -p tsconfig.app.json && vite build",

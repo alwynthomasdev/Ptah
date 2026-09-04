@@ -1,4 +1,4 @@
-import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { BrowserWindow, dialog, ipcMain, nativeTheme, shell } from 'electron';
 import { AppContext } from '@core/AppContext';
 import { tryResult } from '@shared/result';
 import type { AppConfig } from '@shared/ipc';
@@ -22,21 +22,34 @@ export async function registerIpc(): Promise<void> {
   const h = <T>(channel: string, fn: (...args: unknown[]) => Promise<T> | T) =>
     ipcMain.handle(channel, (_evt, ...args) => tryResult(() => fn(...args)));
 
+  /**
+   * Point Ptah at a new data directory: persist it, repoint the media protocol,
+   * rebuild the service context, then reload every window so the renderer boots
+   * fresh against the new location (no stale dialogs, filters, or cached bodies).
+   * Existing files in the old folder are left untouched.
+   */
+  const applyDataDir = async (dir: string): Promise<AppConfig> => {
+    config = await saveConfig({ ...config, dataDir: dir });
+    setDataDir(config.dataDir);
+    context = new AppContext(config.dataDir);
+    await context.init();
+    // Defer so this IPC reply is flushed before the page tears down.
+    setTimeout(() => {
+      for (const w of BrowserWindow.getAllWindows()) w.reload();
+    }, 0);
+    return config;
+  };
+
   // ---- config ----------------------------------------------------------
   h(IPC.configGet, () => config);
 
   h(IPC.configSetTheme, async (theme) => {
     config = await saveConfig({ ...config, theme: theme as AppConfig['theme'] });
+    nativeTheme.themeSource = config.theme;
     return config;
   });
 
-  h(IPC.configSetDataDir, async (dir) => {
-    config = await saveConfig({ ...config, dataDir: String(dir) });
-    setDataDir(config.dataDir);
-    context = new AppContext(config.dataDir);
-    await context.init();
-    return config;
-  });
+  h(IPC.configSetDataDir, async (dir) => applyDataDir(String(dir)));
 
   h(IPC.configPickDataDir, async () => {
     const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
@@ -46,11 +59,21 @@ export async function registerIpc(): Promise<void> {
       properties: ['openDirectory', 'createDirectory'],
     });
     if (picked.canceled || picked.filePaths.length === 0) return null;
-    config = await saveConfig({ ...config, dataDir: picked.filePaths[0] });
-    setDataDir(config.dataDir);
-    context = new AppContext(config.dataDir);
-    await context.init();
-    return config;
+    const dir = picked.filePaths[0];
+
+    const { response } = await dialog.showMessageBox(win, {
+      type: 'question',
+      buttons: ['Use this folder', 'Cancel'],
+      defaultId: 0,
+      cancelId: 1,
+      message: 'Switch Ptah data folder?',
+      detail:
+        `Ptah will reload and read tickets from:\n${dir}\n\n` +
+        'Your existing data in the current folder is left untouched.',
+    });
+    if (response !== 0) return null;
+
+    return applyDataDir(dir);
   });
 
   // ---- projects ------------------------------------------------------

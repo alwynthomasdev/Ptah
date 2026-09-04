@@ -2,14 +2,12 @@
 import { ref } from 'vue';
 import { useSettingsStore } from '../stores/settings';
 import { useProjectsStore } from '../stores/projects';
-import { useTicketsStore } from '../stores/tickets';
 import { call, ptah } from '../api';
 import ThemeToggle from '../components/ThemeToggle.vue';
 
 const emit = defineEmits<{ changed: [] }>();
 const settings = useSettingsStore();
 const projects = useProjectsStore();
-const tickets = useTicketsStore();
 const busy = ref(false);
 
 const firstKey = projects.activeKey ?? projects.items[0]?.key ?? '';
@@ -56,13 +54,10 @@ async function importTickets() {
 async function changeDataDir() {
   busy.value = true;
   try {
-    const cfg = await settings.pickDataDir();
-    if (cfg) {
-      await projects.load();
-      await tickets.load();
-      tickets.setFilter({ projects: projects.activeKey ? [projects.activeKey] : undefined });
-      emit('changed');
-    }
+    // On confirm, the main process reloads the window against the new folder —
+    // nothing to refresh here. On cancel, pickDataDir resolves null and we just
+    // clear the busy flag.
+    await settings.pickDataDir();
   } finally {
     busy.value = false;
   }
@@ -83,8 +78,9 @@ async function changeDataDir() {
       <p class="muted mono">{{ settings.dataDir }}</p>
       <button :disabled="busy" @click="changeDataDir">Change folder…</button>
       <p class="muted small">
-        Tickets are stored here as Markdown files. Changing the folder reloads Ptah from the new
-        location; it does not move existing data.
+        Tickets are stored here as Markdown files. Choosing a new folder asks you to confirm, then
+        reloads Ptah to read from it. Your existing data stays where it is — it is not moved or
+        copied.
       </p>
     </div>
 
@@ -154,7 +150,7 @@ h3 {
   word-break: break-all;
 }
 .small {
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 .err {
   color: var(--danger);

@@ -119,9 +119,9 @@ function clearFilters() {
   gap: 6px;
   padding: 5px 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   background: var(--surface);
   cursor: pointer;
 }

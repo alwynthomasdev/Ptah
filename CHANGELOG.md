@@ -6,6 +6,24 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+### Added — Milestone 4: Theming, packaging, docs
+- App icon (`build/icon.png`) wired into the packaged build: Windows/macOS/Linux installer icons via `electron-builder.yml`, and the `BrowserWindow` icon at runtime (dev vs packaged path).
+- Pre-paint theme boot script (`public/theme-boot.js`) reads a `localStorage` mirror of the theme choice and stamps `data-theme` before Vue mounts, eliminating the light/dark flash on launch.
+- CI workflow (`.github/workflows/ci.yml`): lint, typecheck, test, and build on push/PR.
+- Release workflow (`.github/workflows/release.yml`): on a `v*` tag, builds installers on Windows/macOS/Linux and attaches them to a draft GitHub Release.
+- `LICENSE` (MIT).
+- `engines.node` (`>=20`) in `package.json`.
+- README rewrite: accurate Milestone 1–4 status, a Usage guide, an Import/export guide, corrected data-layout and frontmatter documentation, and installer/CI docs.
+
+### Changed — Milestone 4
+- Changing the data folder now shows a native confirm dialog and reloads all windows after repointing storage, instead of silently swapping context underneath the running renderer.
+- Toggling the theme now also updates `nativeTheme.themeSource`, so native window chrome (title bar, dialogs) stays in sync with the app theme.
+- New CSS custom property scales for radius, spacing, type, z-index, and interaction states; base primitives (button/input/card/tag) and several components (`FilterChip`, `ThemeToggle`, `TicketDialog`, `TicketList`, `Toolbar`, `SwimlaneView`) now consume them instead of hardcoded literals.
+- The packaged window's `backgroundColor` now matches `tokens.css`'s `--bg` for both themes (was off-palette), and dev-vs-packaged window setup is gated on `app.isPackaged` instead of just the presence of a dev server URL.
+
+### Fixed
+- The `prefers-color-scheme` change listener for the `system` theme was being re-registered on every `settings.load()`, leaking listeners; it's now bound once at module scope.
+
 ### Added — Milestone 3: Attachments & import/export
 - Ticket attachments: add or remove files on a ticket from the edit dialog (`AttachmentList`), with open-in-OS and reveal-in-folder actions; files are copied into the ticket's `attachments/<id>/` folder and colliding names get a numeric suffix.
 - "Insert image/file" action in the Markdown editor: attaches a file to the ticket and drops a relative Markdown image/link reference at the caret.

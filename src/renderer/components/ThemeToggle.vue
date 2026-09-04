@@ -29,7 +29,7 @@ const options: { value: AppConfig['theme']; label: string }[] = [
 .theme-toggle {
   display: flex;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 .theme-toggle button {
@@ -37,7 +37,7 @@ const options: { value: AppConfig['theme']; label: string }[] = [
   border-radius: 0;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   padding: 5px 9px;
   cursor: pointer;
 }

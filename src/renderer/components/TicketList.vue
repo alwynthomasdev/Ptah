@@ -121,9 +121,9 @@ function pillStyle(t: Ticket): CSSProperties {
   color: var(--text);
 }
 .status-pill {
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   font-weight: 600;
   display: inline-block;
 }
