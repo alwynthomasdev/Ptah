@@ -19,6 +19,7 @@
     "dist:dir": "npm run build && electron-builder --dir"
   },
   "dependencies": {
+    "adm-zip": "^0.6.0",
     "highlight.js": "^11.10.0",
     "js-yaml": "^4.1.0",
     "markdown-it": "^14.1.0",
@@ -28,6 +29,7 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
     "@types/js-yaml": "^4.0.9",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^22.10.1",

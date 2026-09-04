@@ -80,4 +80,73 @@ export async function registerIpc(): Promise<void> {
   h(IPC.binRestore, (id) => context.recycleBin.restore(String(id)));
   h(IPC.binPurge, (id) => context.recycleBin.purge(String(id)));
   h(IPC.binEmpty, () => context.recycleBin.empty());
+
+  // ---- attachments -----------------------------------------------
+  h(IPC.attachmentsAdd, async (ticketId) => {
+    const id = String(ticketId);
+    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+    const picked = await dialog.showOpenDialog(win, {
+      title: 'Add attachments',
+      properties: ['openFile', 'multiSelections'],
+    });
+    if (picked.canceled || picked.filePaths.length === 0) return context.tickets.get(id);
+    let ticket = await context.tickets.get(id);
+    for (const filePath of picked.filePaths) {
+      ticket = await context.tickets.addAttachment(id, filePath);
+    }
+    return ticket;
+  });
+  h(IPC.attachmentsRemove, (ticketId, filename) =>
+    context.tickets.removeAttachment(String(ticketId), String(filename)),
+  );
+  h(IPC.attachmentsOpen, async (ticketId, filename) => {
+    const err = await shell.openPath(
+      context.tickets.attachmentAbsPath(String(ticketId), String(filename)),
+    );
+    if (err) throw new Error(err);
+  });
+  h(IPC.attachmentsReveal, (ticketId, filename) => {
+    shell.showItemInFolder(context.tickets.attachmentAbsPath(String(ticketId), String(filename)));
+  });
+
+  // ---- import / export -----------------------------------------
+  h(IPC.ioExportTicket, async (ticketId) => {
+    const id = String(ticketId);
+    const ticket = await context.tickets.get(id);
+    const withMedia = ticket.attachments.length > 0;
+    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+    const picked = await dialog.showSaveDialog(win, {
+      title: `Export ${id}`,
+      defaultPath: withMedia ? `${id}.zip` : `${id}.md`,
+      filters: withMedia
+        ? [{ name: 'Zip archive', extensions: ['zip'] }]
+        : [{ name: 'Markdown', extensions: ['md'] }],
+    });
+    if (picked.canceled || !picked.filePath) return false;
+    await context.importExport.exportTickets([id], picked.filePath, { media: withMedia });
+    return true;
+  });
+  h(IPC.ioExportProject, async (projectKey, opts) => {
+    const key = String(projectKey);
+    const media = Boolean((opts as { media?: unknown } | undefined)?.media);
+    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+    const picked = await dialog.showSaveDialog(win, {
+      title: `Export project ${key}`,
+      defaultPath: `${key}.zip`,
+      filters: [{ name: 'Zip archive', extensions: ['zip'] }],
+    });
+    if (picked.canceled || !picked.filePath) return false;
+    await context.importExport.exportProject(key, picked.filePath, { media });
+    return true;
+  });
+  h(IPC.ioImport, async (targetProjectKey) => {
+    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+    const picked = await dialog.showOpenDialog(win, {
+      title: 'Import tickets',
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Ticket or archive', extensions: ['md', 'zip'] }],
+    });
+    if (picked.canceled || picked.filePaths.length === 0) return [];
+    return context.importExport.importFromFiles(picked.filePaths, String(targetProjectKey));
+  });
 }

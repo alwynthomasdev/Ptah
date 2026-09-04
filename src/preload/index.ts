@@ -31,6 +31,17 @@ const api: PtahApi = {
     purge: (id) => ipcRenderer.invoke(IPC.binPurge, id),
     empty: () => ipcRenderer.invoke(IPC.binEmpty),
   },
+  attachments: {
+    add: (ticketId) => ipcRenderer.invoke(IPC.attachmentsAdd, ticketId),
+    remove: (ticketId, filename) => ipcRenderer.invoke(IPC.attachmentsRemove, ticketId, filename),
+    open: (ticketId, filename) => ipcRenderer.invoke(IPC.attachmentsOpen, ticketId, filename),
+    reveal: (ticketId, filename) => ipcRenderer.invoke(IPC.attachmentsReveal, ticketId, filename),
+  },
+  io: {
+    exportTicket: (ticketId) => ipcRenderer.invoke(IPC.ioExportTicket, ticketId),
+    exportProject: (projectKey, opts) => ipcRenderer.invoke(IPC.ioExportProject, projectKey, opts),
+    import: (targetProjectKey) => ipcRenderer.invoke(IPC.ioImport, targetProjectKey),
+  },
   system: {
     openExternal: (url) => ipcRenderer.invoke(IPC.systemOpenExternal, url),
   },

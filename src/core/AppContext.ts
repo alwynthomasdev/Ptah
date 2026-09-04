@@ -4,6 +4,7 @@ import { TicketRepository } from '@storage/TicketRepository';
 import { ProjectService } from './ProjectService';
 import { TicketService } from './TicketService';
 import { RecycleBinService } from './RecycleBinService';
+import { ImportExportService } from './ImportExportService';
 
 /**
  * Bundles every service for a given data directory. Rebuilt whenever the user
@@ -14,6 +15,7 @@ export class AppContext {
   readonly projects: ProjectService;
   readonly tickets: TicketService;
   readonly recycleBin: RecycleBinService;
+  readonly importExport: ImportExportService;
 
   constructor(dataDir: string) {
     this.store = new FileStore(dataDir);
@@ -22,6 +24,7 @@ export class AppContext {
     this.recycleBin = new RecycleBinService(this.store, projectRepo);
     this.projects = new ProjectService(projectRepo);
     this.tickets = new TicketService(ticketRepo, projectRepo, this.recycleBin);
+    this.importExport = new ImportExportService(this.store, projectRepo, ticketRepo);
   }
 
   /** Create the base folder layout if this is a fresh data directory. */

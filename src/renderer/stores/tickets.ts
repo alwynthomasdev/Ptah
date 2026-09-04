@@ -96,6 +96,13 @@ export const useTicketsStore = defineStore('tickets', {
       await call(ptah.tickets.delete(id));
       this.items = this.items.filter((t) => t.id !== id);
     },
+    /** Replace a ticket in the working set (or add it), e.g. after an
+     *  out-of-band change like editing attachments. */
+    upsert(ticket: Ticket) {
+      const i = this.items.findIndex((t) => t.id === ticket.id);
+      if (i >= 0) this.items[i] = ticket;
+      else this.items.push(ticket);
+    },
     setFilter(patch: Partial<TicketFilter>) {
       this.filter = { ...this.filter, ...patch };
     },

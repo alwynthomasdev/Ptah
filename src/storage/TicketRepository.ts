@@ -1,8 +1,23 @@
+import path from 'node:path';
 import type { Ticket } from '@models/Ticket';
 import { isPriority, isStatus, normalizeLabels } from '@models/Ticket';
 import { parseId } from '@shared/ids';
 import type { FileStore } from './FileStore';
 import { parseMarkdown, stringifyMarkdown } from './markdownFile';
+
+/** Reject anything that isn't a bare filename (no traversal, no separators). */
+export function assertSafeFilename(name: string): void {
+  if (
+    !name ||
+    name === '.' ||
+    name === '..' ||
+    name.includes('\0') ||
+    name.includes('/') ||
+    name.includes('\\')
+  ) {
+    throw new Error(`Unsafe attachment filename: "${name}".`);
+  }
+}
 
 /**
  * Maps Ticket objects to/from their `<id>.md` files. Frontmatter holds the
@@ -53,6 +68,42 @@ export class TicketRepository {
     return (await this.store.listFiles(this.store.attachmentsDir(projectKey, id))).sort();
   }
 
+  /** Copy an external file into the ticket's attachments folder, avoiding name
+   *  collisions by suffixing " (2)", " (3)", … Returns the refreshed list. */
+  async addAttachment(id: string, srcAbsPath: string): Promise<string[]> {
+    const { project } = parseId(id);
+    const dir = this.store.attachmentsDir(project, id);
+    const ext = path.extname(srcAbsPath);
+    const stem = path.basename(srcAbsPath, ext);
+    let name = `${stem}${ext}`;
+    for (let n = 2; await this.store.exists(path.join(dir, name)); n += 1) {
+      name = `${stem} (${n})${ext}`;
+    }
+    await this.store.copyFile(srcAbsPath, path.join(dir, name));
+    return this.readAttachments(project, id);
+  }
+
+  /** Remove a single attachment file. Returns the refreshed list. */
+  async removeAttachment(id: string, filename: string): Promise<string[]> {
+    assertSafeFilename(filename);
+    const { project } = parseId(id);
+    await this.store.remove(path.join(this.store.attachmentsDir(project, id), filename));
+    return this.readAttachments(project, id);
+  }
+
+  /** Absolute path of one attachment, guaranteed to sit inside its folder. */
+  attachmentAbsPath(id: string, filename: string): string {
+    assertSafeFilename(filename);
+    const { project } = parseId(id);
+    const dir = this.store.attachmentsDir(project, id);
+    const full = path.join(dir, filename);
+    const rel = path.relative(dir, full);
+    if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) {
+      throw new Error(`Unsafe attachment filename: "${filename}".`);
+    }
+    return full;
+  }
+
   private async tryGet(projectKey: string, id: string): Promise<Ticket | null> {
     const file = this.store.ticketFile(projectKey, id);
     if (!(await this.store.exists(file))) return null;
@@ -96,7 +147,8 @@ export function markdownToTicket(id: string, projectKey: string, raw: string): T
     created: String(data.created ?? new Date(0).toISOString()),
     due,
     labels: normalizeLabels(labels),
-    description: body.trimEnd(),
+    // Mirror stringifyMarkdown's body normalization so load(save(x)) === load(x).
+    description: body.replace(/^\r?\n+/, '').trimEnd(),
     attachments: [],
     deletedAt: typeof data.deletedAt === 'string' ? data.deletedAt : null,
   };

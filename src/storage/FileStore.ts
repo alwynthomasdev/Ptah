@@ -70,6 +70,17 @@ export class FileStore {
     await fs.rename(tmp, p);
   }
 
+  async readBytes(p: string): Promise<Buffer> {
+    return fs.readFile(p);
+  }
+
+  async writeBytes(p: string, contents: Buffer | Uint8Array): Promise<void> {
+    await this.ensureDir(path.dirname(p));
+    const tmp = `${p}.tmp-${process.pid}-${Date.now()}`;
+    await fs.writeFile(tmp, contents);
+    await fs.rename(tmp, p);
+  }
+
   async remove(p: string): Promise<void> {
     await fs.rm(p, { recursive: true, force: true });
   }

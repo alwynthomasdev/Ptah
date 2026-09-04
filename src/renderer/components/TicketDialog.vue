@@ -4,7 +4,9 @@ import type { Ticket } from '@models/Ticket';
 import { PRIORITIES, PRIORITY_LABELS, STATUSES, STATUS_LABELS } from '@models/Ticket';
 import { fromDateInput, toDateInput } from '@shared/dates';
 import { useTicketsStore } from '../stores/tickets';
+import { call, ptah } from '../api';
 import MarkdownEditor from './MarkdownEditor.vue';
+import AttachmentList from './AttachmentList.vue';
 
 const props = defineProps<{
   mode: 'create' | 'edit';
@@ -16,6 +18,24 @@ const emit = defineEmits<{ close: []; saved: [ticket: Ticket] }>();
 const tickets = useTicketsStore();
 const error = ref<string | null>(null);
 const saving = ref(false);
+
+/** Local copy that tracks out-of-band changes (attachments) while the form edits. */
+const current = ref<Ticket | null>(props.ticket ?? null);
+
+function onAttachmentsUpdated(t: Ticket) {
+  current.value = t;
+  tickets.upsert(t);
+}
+
+async function exportTicket() {
+  if (!current.value) return;
+  error.value = null;
+  try {
+    await call(ptah.io.exportTicket(current.value.id));
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e);
+  }
+}
 
 const form = reactive({
   title: props.ticket?.title ?? '',
@@ -117,12 +137,27 @@ async function submit() {
             v-model="form.description"
             :project="props.projectKey ?? props.ticket?.project"
             :ticket-id="props.ticket?.id"
+            @attached="onAttachmentsUpdated"
           />
         </label>
+
+        <AttachmentList
+          v-if="mode === 'edit' && current"
+          :ticket="current"
+          @updated="onAttachmentsUpdated"
+        />
 
         <p v-if="error" class="err">{{ error }}</p>
 
         <footer class="row">
+          <button
+            v-if="mode === 'edit'"
+            type="button"
+            class="ghost"
+            @click="exportTicket"
+          >
+            Export…
+          </button>
           <span class="spacer" />
           <button type="button" class="ghost" @click="emit('close')">Cancel</button>
           <button type="submit" class="primary" :disabled="saving">

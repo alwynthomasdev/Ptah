@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import type { Ticket } from '@models/Ticket';
 import type { ListScope } from '../stores/tickets';
 import { useTicketsStore } from '../stores/tickets';
+import { call, ptah } from '../api';
 import TicketList from './TicketList.vue';
 import TicketDialog from './TicketDialog.vue';
 
@@ -26,6 +27,10 @@ async function remove(t: Ticket) {
   emit('changed');
 }
 
+async function exportTicket(t: Ticket) {
+  await call(ptah.io.exportTicket(t.id));
+}
+
 function onSaved() {
   editing.value = null;
   emit('changed');
@@ -40,6 +45,7 @@ function onSaved() {
       :empty="empty"
       @open="editing = $event"
       @remove="remove"
+      @export="exportTicket"
     />
 
     <TicketDialog

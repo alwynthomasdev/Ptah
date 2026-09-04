@@ -46,4 +46,20 @@ export class TicketService {
     const ticket = await this.tickets.get(id);
     await this.bin.moveToBin(ticket);
   }
+
+  // ---- attachments -------------------------------------------------------
+
+  async addAttachment(id: string, srcAbsPath: string): Promise<Ticket> {
+    await this.tickets.addAttachment(id, srcAbsPath);
+    return this.tickets.get(id);
+  }
+
+  async removeAttachment(id: string, filename: string): Promise<Ticket> {
+    await this.tickets.removeAttachment(id, filename);
+    return this.tickets.get(id);
+  }
+
+  attachmentAbsPath(id: string, filename: string): string {
+    return this.tickets.attachmentAbsPath(id, filename);
+  }
 }

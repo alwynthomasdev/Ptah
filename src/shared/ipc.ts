@@ -31,6 +31,15 @@ export const IPC = {
   binPurge: 'bin:purge',
   binEmpty: 'bin:empty',
 
+  attachmentsAdd: 'attachments:add',
+  attachmentsRemove: 'attachments:remove',
+  attachmentsOpen: 'attachments:open',
+  attachmentsReveal: 'attachments:reveal',
+
+  ioExportTicket: 'io:exportTicket',
+  ioExportProject: 'io:exportProject',
+  ioImport: 'io:import',
+
   systemOpenExternal: 'system:openExternal',
 } as const;
 
@@ -63,6 +72,24 @@ export interface PtahApi {
     restore(id: string): Promise<Result<Ticket>>;
     purge(id: string): Promise<Result<void>>;
     empty(): Promise<Result<void>>;
+  };
+  attachments: {
+    /** Open a native picker, copy the chosen files onto the ticket. */
+    add(ticketId: string): Promise<Result<Ticket>>;
+    remove(ticketId: string, filename: string): Promise<Result<Ticket>>;
+    /** Open the attachment in the OS default application. */
+    open(ticketId: string, filename: string): Promise<Result<void>>;
+    /** Show the attachment in the OS file manager. */
+    reveal(ticketId: string, filename: string): Promise<Result<void>>;
+  };
+  io: {
+    /** Export one ticket; picks `.md` or `.zip` by whether it has attachments.
+     *  Resolves `false` if the user cancels the save dialog. */
+    exportTicket(ticketId: string): Promise<Result<boolean>>;
+    /** Export a whole project to a `.zip`. Resolves `false` on cancel. */
+    exportProject(projectKey: string, opts: { media: boolean }): Promise<Result<boolean>>;
+    /** Open a picker for `.md` / `.zip` files and import them into a project. */
+    import(targetProjectKey: string): Promise<Result<Ticket[]>>;
   };
   system: {
     /** Open an `http(s)`/`mailto` URL in the OS default handler. */

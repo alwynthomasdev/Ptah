@@ -15,7 +15,11 @@ const props = defineProps<{
   variant: 'list' | 'backlog' | 'archive';
   empty?: string;
 }>();
-const emit = defineEmits<{ open: [ticket: Ticket]; remove: [ticket: Ticket] }>();
+const emit = defineEmits<{
+  open: [ticket: Ticket];
+  remove: [ticket: Ticket];
+  export: [ticket: Ticket];
+}>();
 
 const dateHeading = props.variant === 'list' ? 'Due' : 'Created';
 
@@ -38,7 +42,7 @@ function pillStyle(t: Ticket): CSSProperties {
         <th>Priority</th>
         <th>Labels</th>
         <th>{{ dateHeading }}</th>
-        <th class="col-trash" aria-hidden="true" />
+        <th class="col-actions" aria-hidden="true" />
       </tr>
     </thead>
     <tbody>
@@ -60,8 +64,21 @@ function pillStyle(t: Ticket): CSSProperties {
           {{ formatDate(t.due) }}
         </td>
         <td v-else>{{ formatDate(t.created) }}</td>
-        <td class="col-trash">
-          <button class="ghost trash" title="Delete" @click.stop="emit('remove', t)">🗑</button>
+        <td class="col-actions">
+          <button
+            class="ghost row-action"
+            title="Export"
+            @click.stop="emit('export', t)"
+          >
+            ⬇
+          </button>
+          <button
+            class="ghost row-action"
+            title="Delete"
+            @click.stop="emit('remove', t)"
+          >
+            🗑
+          </button>
         </td>
       </tr>
     </tbody>
@@ -123,15 +140,16 @@ function pillStyle(t: Ticket): CSSProperties {
 .col-id {
   width: 1%;
 }
-.col-trash {
+.col-actions {
   width: 1%;
   text-align: right;
+  white-space: nowrap;
 }
-.trash {
+.row-action {
   padding: 2px 6px;
   opacity: 0;
 }
-.list-table tbody tr:hover .trash {
+.list-table tbody tr:hover .row-action {
   opacity: 1;
 }
 .pad {

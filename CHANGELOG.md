@@ -6,6 +6,15 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+### Added — Milestone 3: Attachments & import/export
+- Ticket attachments: add or remove files on a ticket from the edit dialog (`AttachmentList`), with open-in-OS and reveal-in-folder actions; files are copied into the ticket's `attachments/<id>/` folder and colliding names get a numeric suffix.
+- "Insert image/file" action in the Markdown editor: attaches a file to the ticket and drops a relative Markdown image/link reference at the caret.
+- Import / export: export a single ticket as a `.md` file (no attachments) or a `.zip`, export a whole project as a `.zip` with an optional "include attachments" toggle, and import `.md` / `.zip` files into a project. Import always allocates fresh ticket ids. Adds `ImportExportService`, `attachments:*` / `io:*` IPC, and an Import / export panel in Settings.
+- Export action on each ticket row and in the ticket dialog.
+
+### Fixed
+- Markdown body normalization on read now mirrors the writer, so reloading or re-importing a ticket no longer shifts leading blank lines in its description.
+
 ### Added — Milestone 2: Views, filtering, Markdown
 - Interactive Swimlane: drag tickets between the Scheduled / WIP / Done lanes or the Paused tray to change status; the new status is written to disk.
 - Filter bar with Priority, Labels, and Project multi-select chips plus a Clear control, all bound to `TicketFilter` fields.
