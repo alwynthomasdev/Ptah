@@ -13,6 +13,15 @@ product spec.
 The build is delivered in milestones; the plan and current milestone status live
 in `~/.claude/plans/read-spec-md-plan-the-eager-babbage.md` and `CHANGELOG.md`.
 
+## Subagents
+
+Work is divided across `.claude/agents/`: **`ui`** (`src/renderer`),
+**`core-data`** (`src/models` / `src/shared` / `src/storage` / `src/core` /
+`src/main` / `src/preload`), **`tester`** (`test/`), **`docs`** (README + guides),
+and **`git-manager`** (all git + `CHANGELOG.md` + releases). Each works freely
+within its lane and passes `typecheck`/`lint`/`test`; none commits — that routes
+through `git-manager`.
+
 ## Git, CHANGELOG, and releases
 
 All git work goes through the **`git-manager`** subagent
