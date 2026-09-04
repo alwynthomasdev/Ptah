@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ptah — prototype</title>
+<style>
+  :root {
+    --sans: -apple-system, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+    --mono: "SF Mono", "JetBrains Mono", Consolas, Menlo, monospace;
+
+    --bg: #14171c;
+    --surface: #1a1e25;
+    --surface-2: #20242c;
+    --border: #2a2f39;
+    --text: #e6e9ee;
+    --text-dim: #8b93a1;
+    --text-faint: #5b6272;
+    --accent: #c9a227;
+    --accent-dim: #7a6a2e;
+
+    --backlog: #6b7280;
+    --scheduled: #4f8ff0;
+    --wip: #c9a227;
+    --paused: #b4783a;
+    --done: #4caf7d;
+    --archive: #8b7bb0;
+
+    --p-lowest: #4a5261;
+    --p-low: #4f8ff0;
+    --p-medium: #c9a227;
+    --p-high: #d9773f;
+    --p-highest: #d9483f;
+  }
+
+  html[data-theme="light"] {
+    --bg: #f3f2ee;
+    --surface: #ffffff;
+    --surface-2: #ebe9e3;
+    --border: #dcd9d1;
+    --text: #23241f;
+    --text-dim: #6b6a63;
+    --text-faint: #9a988f;
+    --accent: #a3811c;
+    --accent-dim: #cbb672;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- shell ---- */
+  .shell { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: 52px 1fr; height: 100vh; }
+
+  .topbar {
+    grid-column: 1 / 3;
+    display: flex; align-items: center; gap: 18px;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: 0.2px; }
+  .brand .mark {
+    width: 20px; height: 20px; border-radius: 4px;
+    background: var(--accent); color: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+  }
+  .crumbs { color: var(--text-dim); font-size: 12.5px; }
+  .crumbs b { color: var(--text); font-weight: 500; }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+  .search {
+    width: 220px; padding: 6px 10px;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-size: 12.5px;
+  }
+  .search::placeholder { color: var(--text-faint); }
+
+  .theme-toggle {
+    display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+  }
+  .theme-toggle button {
+    border: none; background: var(--surface-2); color: var(--text-dim);
+    font-size: 11.5px; padding: 5px 9px; cursor: pointer; font-family: var(--sans);
+  }
+  .theme-toggle button.active { background: var(--accent); color: var(--bg); font-weight: 600; }
+  .theme-toggle button + button { border-left: 1px solid var(--border); }
+
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--surface-2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--text-dim); font-family: var(--mono);
+  }
+
+  /* ---- sidebar ---- */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    padding: 16px 10px;
+    overflow-y: auto;
+  }
+  .side-section { margin-bottom: 20px; }
+  .side-label {
+    font-size: 10.5px; letter-spacing: 0.4px; color: var(--text-faint);
+    padding: 0 8px 6px; font-weight: 600;
+  }
+  .side-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; border-radius: 5px; color: var(--text-dim);
+    cursor: pointer; font-size: 13px;
+  }
+  .side-item:hover { background: var(--surface-2); color: var(--text); }
+  .side-item.active { background: var(--surface-2); color: var(--text); font-weight: 600; }
+  .side-item.active::before { content: ""; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; margin-left: -8px; margin-right: 5px; }
+  .side-item .count { margin-left: auto; color: var(--text-faint); font-size: 11px; font-family: var(--mono); }
+  .proj-dot { width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ---- main ---- */
+  .main { overflow: auto; padding: 18px 20px; }
+
+  .view-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .view-tab {
+    padding: 8px 14px; font-size: 12.5px; color: var(--text-dim);
+    border-bottom: 2px solid transparent; cursor: pointer; font-weight: 500;
+  }
+  .view-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-dim); font-size: 12px; background: var(--surface); cursor: pointer;
+  }
+  .chip:hover { border-color: var(--text-faint); color: var(--text); }
+  .toolbar-spacer { flex: 1; }
+  .btn-new {
+    padding: 6px 12px; border-radius: 6px; border: 1px solid var(--accent);
+    background: var(--accent); color: var(--bg); font-weight: 600; font-size: 12.5px; cursor: pointer;
+  }
+
+  /* ---- themed scrollbars ---- */
+  .lanes, .paused-tray-body, .main {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .lanes::-webkit-scrollbar, .paused-tray-body::-webkit-scrollbar { height: 8px; }
+  .main::-webkit-scrollbar { width: 8px; height: 8px; }
+  .lanes::-webkit-scrollbar-track, .paused-tray-body::-webkit-scrollbar-track, .main::-webkit-scrollbar-track { background: transparent; }
+  .lanes::-webkit-scrollbar-thumb, .paused-tray-body::-webkit-scrollbar-thumb, .main::-webkit-scrollbar-thumb {
+    background: var(--border); border-radius: 4px; border: 2px solid transparent; background-clip: padding-box;
+  }
+  .lanes:hover::-webkit-scrollbar-thumb, .paused-tray-body:hover::-webkit-scrollbar-thumb, .main:hover::-webkit-scrollbar-thumb {
+    background: var(--text-faint); background-clip: padding-box;
+  }
+  .lanes::-webkit-scrollbar-button, .paused-tray-body::-webkit-scrollbar-button, .main::-webkit-scrollbar-button { display: none; }
+
+  /* ---- swimlane ---- */
+  .lanes { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 10px; }
+  .lane { display: flex; flex-direction: column; flex: 0 0 280px; width: 280px; }
+  .lane-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 2px 10px;
+    font-size: 12px; font-weight: 600; color: var(--text-dim);
+  }
+  .lane-head .dot { width: 8px; height: 8px; border-radius: 2px; }
+  .lane-head .n { margin-left: auto; font-family: var(--mono); color: var(--text-faint); font-weight: 400; }
+  .lane-body { display: flex; flex-direction: column; gap: 8px; min-height: 40px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 7px;
+    padding: 10px 11px; cursor: pointer; position: relative;
+  }
+  .card:hover { border-color: var(--text-faint); }
+  .card .pri-bar {
+    position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 2px;
+  }
+  .card-top { display: flex; align-items: baseline; gap: 8px; padding-left: 8px; }
+  .card-id { font-family: var(--mono); font-size: 11px; color: var(--text-faint); }
+  .card-title { font-size: 13px; color: var(--text); font-weight: 500; }
+  .card-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-left: 8px; }
+  .label {
+    font-size: 10.5px; padding: 2px 7px; border-radius: 10px;
+    background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border);
+  }
+  .due { font-size: 11px; color: var(--text-faint); margin-left: auto; }
+  .due.overdue { color: var(--p-highest); }
+
+  /* paused tray */
+  .paused-tray {
+    margin-top: 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface);
+  }
+  .paused-tray-head {
+    display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer;
+  }
+  .paused-tray-head .dot { width: 8px; height: 8px; border-radius: 2px; background: var(--paused); }
+  .paused-tray-head b { font-size: 12px; font-weight: 600; color: var(--text-dim); }
+  .paused-tray-head .n { color: var(--text-faint); font-family: var(--mono); font-size: 11px; }
+  .paused-tray-head .chevron { margin-left: auto; color: var(--text-faint); font-size: 11px; }
+  .paused-tray-body {
+    display: flex; gap: 8px; overflow-x: auto;
+    padding: 0 12px 12px;
+  }
+  .paused-tray-body .card { border-style: dashed; flex: 0 0 280px; width: 280px; }
+
+  /* ---- list view ---- */
+  .list-table { width: 100%; border-collapse: collapse; }
+  .list-table th {
+    text-align: left; font-size: 10.5px; letter-spacing: 0.3px; color: var(--text-faint);
+    font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--border);
+  }
+  .list-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+  .list-table tr:hover td { background: var(--surface); }
+  .status-pill {
+    font-size: 10.5px; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+    display: inline-block;
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="topbar">
+    <div class="brand"><span class="mark">P</span> Ptah</div>
+    <div class="crumbs">Projects <span style="opacity:.5">/</span> <b>PTAH</b></div>
+    <div class="topbar-right">
+      <input class="search" placeholder="Search tickets…">
+      <div class="theme-toggle">
+        <button data-theme-btn="light">Light</button>
+        <button data-theme-btn="dark" class="active">Dark</button>
+        <button data-theme-btn="system">System</button>
+      </div>
+      <div class="avatar">AL</div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="side-section">
+      <div class="side-label">PROJECTS</div>
+      <div class="side-item active"><span class="proj-dot" style="background:var(--accent)"></span> Ptah <span class="count">18</span></div>
+      <div class="side-item"><span class="proj-dot" style="background:var(--scheduled)"></span> Homelab <span class="count">6</span></div>
+      <div class="side-item" style="color:var(--text-faint)">+ Add project</div>
+    </div>
+    <div class="side-section">
+      <div class="side-label">VIEWS</div>
+      <div class="side-item active" data-view-link="swimlane">Swimlane</div>
+      <div class="side-item" data-view-link="list">List</div>
+      <div class="side-item" data-view-link="backlog">Backlog <span class="count">7</span></div>
+      <div class="side-item" data-view-link="archive">Archive <span class="count">42</span></div>
+      <div class="side-item" data-view-link="recycle">Recycle bin <span class="count">2</span></div>
+    </div>
+    <div class="side-section">
+      <div class="side-label">FILTER BY LABEL</div>
+      <div class="side-item">bug</div>
+      <div class="side-item">crypto</div>
+      <div class="side-item">music-app</div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <div class="view-tabs">
+      <div class="view-tab active" data-tab="swimlane">Swimlane</div>
+      <div class="view-tab" data-tab="list">List</div>
+      <div class="view-tab" data-tab="backlog">Backlog</div>
+      <div class="view-tab" data-tab="archive">Archive</div>
+    </div>
+
+    <div class="toolbar">
+      <div class="chip">Priority ▾</div>
+      <div class="chip">Labels ▾</div>
+      <div class="chip">Sort: Due date ▾</div>
+      <div class="toolbar-spacer"></div>
+      <button class="btn-new">+ New ticket</button>
+    </div>
+
+    <!-- SWIMLANE VIEW -->
+    <div class="tab-panel" id="panel-swimlane">
+      <div class="lanes">
+
+        <div class="lane">
+          <div class="lane-head"><span class="dot" style="background:var(--scheduled)"></span> Scheduled <span class="n">3</span></div>
+          <div class="lane-body">
+            <div class="card">
+              <div class="pri-bar" style="background:var(--p-high)"></div>
+              <div class="card-top"><span class="card-id">PTAH-12</span></div>
+              <div class="card-top" style="margin-top:2px;padding-left:8px"><span class="card-title">Wire up recycle bin restore</span></div>
+              <div class="card-meta">
+                <span class="label">core</span>
+                <span class="due">Sep 8</span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="pri-bar" style="background:var(--p-medium)"></div>
+              <div class="card-top"><span class="card-id">PTAH-15</span></div>
+              <div class="card-top" style="margin-top:2px;padding-left:8px"><span class="card-title">Drag-and-drop between lanes</span></div>
+              <div class="card-meta">
+                <span class="label">renderer</span>
+                <span class="due">Sep 12</span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="pri-bar" style="background:var(--p-low)"></div>
+              <div class="card-top"><span class="card-id">PTAH-9</span></div>
+              <div class="card-top" style="margin-top:2px;padding-left:8px"><span class="card-title">Zip export for tickets with media</span></div>
+              <div class="card-meta">
+                <span class="label">storage</span>
+                <span class="due">Sep 20</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lane">
+          <div class="lane-head"><span class="dot" style="background:var(--wip)"></span> WIP <span class="n">2</span></div>
+          <div class="lane-body">
+            <div class="card">
+              <div class="pri-bar" style="background:var(--p-highest)"></div>
+              <div class="card-top"><span class="card-id">PTAH-3</span></div>
+              <div class="card-top" style="margin-top:2px;padding-left:8px"><span class="card-title">Fix frontmatter round-trip on corrupt enums</span></div>
+              <div class="card-meta">
+                <span class="label">bug</span>
+                <span class="label">storage</span>
+                <span class="due overdue">Sep 2 · overdue</span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="pri-bar" style="background:var(--p-medium)"></div>
+              <div class="card-top"><span class="card-id">PTAH-18</span></div>
+              <div class="card-top" style="margin-top:2px;padding-left:8px"><span class="card-title">Theme switcher (light/dark/system)</span></div>
+              <div class="card-meta">
+                <span class="label">ui</span>
+                <span class="due">Sep 6</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lane">
+          <div class="lane-head"><span class="dot" style="background:var(--done)"></span> Done <span class="n">2</span></div>
+          <div class="lane-body">
+            <div class="card">
+              <div class="pri-bar" style="background:var(--p-low)"></div>
+              <div class="card-top"><span class="card-id">PTAH-1</span></div>
+              <div class="card-top" style="margin-top:2px;padding-left:8px"><span class="card-title">Scaffold Electron + Vue shell</span></div>
+              <div class="card-meta">
+                <span class="label">main</span>
+                <span class="due">Aug 28</span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="pri-bar" style="background:var(--p-medium)"></div>
+              <div class="card-top"><span class="card-id">PTAH-6</span></div>
+              <div class="card-top" style="margin-top:2px;padding-left:8px"><span class="card-title">Project create/delete flow</span></div>
+              <div class="card-meta">
+                <span class="label">core</span>
+                <span class="due">Aug 30</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="paused-tray">
+        <div class="paused-tray-head" id="paused-toggle">
+          <span class="dot"></span>
+          <b>Paused</b>
+          <span class="n">1</span>
+          <span class="chevron" id="paused-chevron">▾ hide</span>
+        </div>
+        <div class="paused-tray-body" id="paused-body">
+          <div class="card">
+            <div class="pri-bar" style="background:var(--p-medium)"></div>
+            <div class="card-top"><span class="card-id">PTAH-11</span></div>
+            <div class="card-top" style="margin-top:2px;padding-left:8px"><span class="card-title">MIDI input validation script</span></div>
+            <div class="card-meta">
+              <span class="label">music-app</span>
+              <span class="due">Sep 15</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIST VIEW -->
+    <div class="tab-panel hidden" id="panel-list">
+      <table class="list-table">
+        <thead>
+          <tr><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Labels</th><th>Due</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="card-id">PTAH-3</td><td>Fix frontmatter round-trip on corrupt enums</td>
+            <td><span class="status-pill" style="background:var(--wip);color:var(--bg)">WIP</span></td>
+            <td style="color:var(--p-highest)">Highest</td>
+            <td><span class="label">bug</span> <span class="label">storage</span></td>
+            <td class="due overdue">Sep 2</td>
+          </tr>
+          <tr>
+            <td class="card-id">PTAH-12</td><td>Wire up recycle bin restore</td>
+            <td><span class="status-pill" style="background:var(--scheduled);color:#fff">Scheduled</span></td>
+            <td style="color:var(--p-high)">High</td>
+            <td><span class="label">core</span></td>
+            <td class="due">Sep 8</td>
+          </tr>
+          <tr>
+            <td class="card-id">PTAH-18</td><td>Theme switcher (light/dark/system)</td>
+            <td><span class="status-pill" style="background:var(--wip);color:var(--bg)">WIP</span></td>
+            <td style="color:var(--p-medium)">Medium</td>
+            <td><span class="label">ui</span></td>
+            <td class="due">Sep 6</td>
+          </tr>
+          <tr>
+            <td class="card-id">PTAH-11</td><td>MIDI input validation script</td>
+            <td><span class="status-pill" style="background:var(--paused);color:#fff">Paused</span></td>
+            <td style="color:var(--p-medium)">Medium</td>
+            <td><span class="label">music-app</span></td>
+            <td class="due">Sep 15</td>
+          </tr>
+          <tr>
+            <td class="card-id">PTAH-1</td><td>Scaffold Electron + Vue shell</td>
+            <td><span class="status-pill" style="background:var(--done);color:#fff">Done</span></td>
+            <td style="color:var(--p-low)">Low</td>
+            <td><span class="label">main</span></td>
+            <td class="due">Aug 28</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- BACKLOG VIEW -->
+    <div class="tab-panel hidden" id="panel-backlog">
+      <table class="list-table">
+        <thead><tr><th>ID</th><th>Title</th><th>Priority</th><th>Labels</th><th>Created</th></tr></thead>
+        <tbody>
+          <tr><td class="card-id">PTAH-21</td><td>Warhammer 40k tactics simulator — spike</td><td style="color:var(--p-medium)">Medium</td><td><span class="label">side-project</span></td><td>Sep 1</td></tr>
+          <tr><td class="card-id">PTAH-22</td><td>Markdown text editor — spike</td><td style="color:var(--p-lowest)">Lowest</td><td><span class="label">side-project</span></td><td>Sep 1</td></tr>
+          <tr><td class="card-id">PTAH-23</td><td>One-time secret sharing tool</td><td style="color:var(--p-low)">Low</td><td><span class="label">crypto</span></td><td>Aug 30</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ARCHIVE VIEW -->
+    <div class="tab-panel hidden" id="panel-archive">
+      <table class="list-table">
+        <thead><tr><th>ID</th><th>Title</th><th>Priority</th><th>Labels</th><th>Completed</th></tr></thead>
+        <tbody>
+          <tr><td class="card-id">PTAH-0</td><td>Repo init, README, spec</td><td style="color:var(--p-lowest)">Lowest</td><td><span class="label">docs</span></td><td>Aug 25</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // theme switching
+  const root = document.documentElement;
+  document.querySelectorAll('[data-theme-btn]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-theme-btn]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const choice = btn.dataset.themeBtn;
+      if (choice === 'system') {
+        root.setAttribute('data-theme', window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      } else {
+        root.setAttribute('data-theme', choice);
+      }
+    });
+  });
+
+  // tab / sidebar view switching (both drive the same panels)
+  const panels = ['swimlane', 'list', 'backlog', 'archive'];
+  function showPanel(name) {
+    panels.forEach(p => {
+      document.getElementById('panel-' + p)?.classList.toggle('hidden', p !== name);
+    });
+    document.querySelectorAll('.view-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.querySelectorAll('[data-view-link]').forEach(t => t.classList.toggle('active', t.dataset.viewLink === name));
+  }
+  document.querySelectorAll('.view-tab').forEach(t => t.addEventListener('click', () => showPanel(t.dataset.tab)));
+  document.querySelectorAll('[data-view-link]').forEach(t => {
+    if (['swimlane','list','backlog','archive'].includes(t.dataset.viewLink)) {
+      t.addEventListener('click', () => showPanel(t.dataset.viewLink));
+    }
+  });
+
+  // paused tray collapse
+  const pausedBody = document.getElementById('paused-body');
+  const pausedChevron = document.getElementById('paused-chevron');
+  document.getElementById('paused-toggle').addEventListener('click', () => {
+    const hidden = pausedBody.classList.toggle('hidden');
+    pausedChevron.textContent = hidden ? '▸ show' : '▾ hide';
+  });
+</script>
+
+</body>
+</html>
