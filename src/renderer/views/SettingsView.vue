@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import type { UpdateInfo } from '@shared/ipc';
 import { useSettingsStore } from '../stores/settings';
 import { useProjectsStore } from '../stores/projects';
 import { call, ptah } from '../api';
@@ -81,6 +82,64 @@ async function changeDataDir() {
     busy.value = false;
   }
 }
+
+const checking = ref(false);
+const checkMsg = ref<string | null>(null);
+const checkErr = ref<string | null>(null);
+const available = ref<UpdateInfo | null>(null);
+
+const downloading = ref(false);
+const downloaded = ref(false);
+const downloadErr = ref<string | null>(null);
+
+const installing = ref(false);
+const installErr = ref<string | null>(null);
+
+async function checkForUpdate() {
+  checking.value = true;
+  checkMsg.value = null;
+  checkErr.value = null;
+  available.value = null;
+  downloaded.value = false;
+  downloadErr.value = null;
+  try {
+    const info = await call(ptah.updates.check());
+    if (info) {
+      available.value = info;
+      checkMsg.value = `v${info.version} is available`;
+    } else {
+      checkMsg.value = "You're up to date";
+    }
+  } catch (e) {
+    checkErr.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    checking.value = false;
+  }
+}
+
+async function downloadUpdate() {
+  downloading.value = true;
+  downloadErr.value = null;
+  try {
+    await call(ptah.updates.download());
+    downloaded.value = true;
+  } catch (e) {
+    downloadErr.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    downloading.value = false;
+  }
+}
+
+async function installUpdate() {
+  installing.value = true;
+  installErr.value = null;
+  try {
+    await call(ptah.updates.install());
+  } catch (e) {
+    installErr.value = e instanceof Error ? e.message : String(e);
+    installing.value = false;
+  }
+}
 </script>
 
 <template>
@@ -159,6 +218,33 @@ async function changeDataDir() {
         </p>
       </template>
     </div>
+
+    <div class="card block">
+      <h3>Software update</h3>
+
+      <div class="update-row">
+        <button :disabled="checking" @click="checkForUpdate">
+          {{ checking ? 'Checking…' : 'Check for updates' }}
+        </button>
+        <span v-if="checkMsg" class="muted small">{{ checkMsg }}</span>
+      </div>
+      <p v-if="checkErr" class="err small">{{ checkErr }}</p>
+
+      <div v-if="available" class="update-row">
+        <template v-if="!downloaded">
+          <button :disabled="downloading" @click="downloadUpdate">
+            {{ downloading ? 'Downloading…' : 'Download' }}
+          </button>
+        </template>
+        <template v-else>
+          <button :disabled="installing" @click="installUpdate">
+            {{ installing ? 'Restarting…' : 'Restart & Install' }}
+          </button>
+        </template>
+      </div>
+      <p v-if="downloadErr" class="err small">{{ downloadErr }}</p>
+      <p v-if="installErr" class="err small">{{ installErr }}</p>
+    </div>
   </section>
 </template>
 
@@ -210,6 +296,12 @@ h3 {
   gap: 6px;
   font-size: 13px;
   color: var(--text-dim);
+}
+.update-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .project-list {
   list-style: none;

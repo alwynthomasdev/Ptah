@@ -5,6 +5,7 @@ import type { AppConfig } from '@shared/ipc';
 import { IPC } from '@shared/ipc';
 import { loadConfig, saveConfig } from './config';
 import { setDataDir } from './appState';
+import { checkForUpdate, downloadUpdate, installUpdate } from './updater';
 
 /**
  * Registers every IPC handler once, at startup. Each handler wraps its work in
@@ -172,4 +173,12 @@ export async function registerIpc(): Promise<void> {
     if (picked.canceled || picked.filePaths.length === 0) return [];
     return context.importExport.importFromFiles(picked.filePaths, String(targetProjectKey));
   });
+
+  // ---- updates -------------------------------------------------------
+  // checkForUpdate/downloadUpdate already resolve a Result themselves (they
+  // need to distinguish "no update" from "error" internally), so register
+  // them directly rather than through `h` to avoid double-wrapping.
+  ipcMain.handle(IPC.updatesCheck, () => checkForUpdate());
+  ipcMain.handle(IPC.updatesDownload, () => downloadUpdate());
+  h(IPC.updatesInstall, () => installUpdate());
 }

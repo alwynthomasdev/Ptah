@@ -184,6 +184,13 @@ Pushing a `vX.Y.Z` tag triggers `.github/workflows/release.yml`, which runs
 Release. `.github/workflows/ci.yml` runs lint / typecheck / test / build on every
 push and PR.
 
+Packaged Windows and Linux builds can update themselves: Settings has a
+"Check for updates" control that checks the project's GitHub Releases and, if
+a newer version is available, can download and install it in place (restarts
+the app to apply). macOS is excluded — Ptah's builds are unsigned, and
+macOS's update mechanism requires a signed and notarized app, so Mac users
+keep downloading the `.dmg` manually.
+
 ## Architecture
 
 | Layer | Path | Responsibility |

@@ -6,6 +6,13 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+### Added — Software updates
+- In-app update checking for packaged Windows and Linux builds: a "Software update" section in Settings checks the project's GitHub Releases, downloads an available update, and restarts to install it. macOS is excluded — Ptah's builds are unsigned, and macOS's update mechanism requires a signed and notarized app.
+- `window.ptah.updates.{check,download,install}` IPC surface, backed by a new `src/main/updater.ts` wrapper around `electron-updater`.
+
+### Changed — Software updates
+- `electron-builder.yml` gained a `publish` (GitHub) block so update metadata (`latest.yml` / `latest-linux.yml`) is generated on build; `dist` / `dist:dir` pass `--publish never` since uploading to GitHub Releases stays the job of the existing tag-triggered release workflow.
+
 ### Added — Quick tweaks
 - Tickets now carry an ordered `urls` list (reference links), editable in the ticket form and shown as clickable links on the ticket page.
 - Status filter chip in the toolbar, alongside Priority/Labels/Project.

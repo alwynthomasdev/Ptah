@@ -4,6 +4,10 @@ copyright: Copyright © 2026 Alwyn Thomas
 directories:
   output: release/${version}
   buildResources: build
+publish:
+  provider: github
+  owner: alwynthomasdev
+  repo: Ptah
 files:
   - dist/**/*
   - dist-electron/**/*

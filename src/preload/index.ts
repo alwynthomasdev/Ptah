@@ -45,6 +45,11 @@ const api: PtahApi = {
   system: {
     openExternal: (url) => ipcRenderer.invoke(IPC.systemOpenExternal, url),
   },
+  updates: {
+    check: () => ipcRenderer.invoke(IPC.updatesCheck),
+    download: () => ipcRenderer.invoke(IPC.updatesDownload),
+    install: () => ipcRenderer.invoke(IPC.updatesInstall),
+  },
 };
 
 contextBridge.exposeInMainWorld('ptah', api);

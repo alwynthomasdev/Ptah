@@ -8,6 +8,12 @@ export interface AppConfig {
   theme: 'light' | 'dark' | 'system';
 }
 
+/** Info about an available update, surfaced from GitHub Releases via `electron-updater`. */
+export interface UpdateInfo {
+  version: string;
+  releaseNotes?: string;
+}
+
 /** IPC channel names. One place so preload and main can't drift. */
 export const IPC = {
   configGet: 'config:get',
@@ -41,6 +47,10 @@ export const IPC = {
   ioImport: 'io:import',
 
   systemOpenExternal: 'system:openExternal',
+
+  updatesCheck: 'updates:check',
+  updatesDownload: 'updates:download',
+  updatesInstall: 'updates:install',
 } as const;
 
 /**
@@ -94,5 +104,13 @@ export interface PtahApi {
   system: {
     /** Open an `http(s)`/`mailto` URL in the OS default handler. */
     openExternal(url: string): Promise<Result<void>>;
+  };
+  updates: {
+    /** Check GitHub Releases for a newer version. Resolves `null` when already current. */
+    check(): Promise<Result<UpdateInfo | null>>;
+    /** Download the update found by `check()`. */
+    download(): Promise<Result<void>>;
+    /** Quit and install the downloaded update. */
+    install(): Promise<Result<void>>;
   };
 }
