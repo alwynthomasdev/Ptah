@@ -11,6 +11,7 @@ All notable changes to Ptah are documented here. The format follows
 - "Insert image/file" action in the Markdown editor: attaches a file to the ticket and drops a relative Markdown image/link reference at the caret.
 - Import / export: export a single ticket as a `.md` file (no attachments) or a `.zip`, export a whole project as a `.zip` with an optional "include attachments" toggle, and import `.md` / `.zip` files into a project. Import always allocates fresh ticket ids. Adds `ImportExportService`, `attachments:*` / `io:*` IPC, and an Import / export panel in Settings.
 - Export action on each ticket row and in the ticket dialog.
+- Permanently delete a project and all its tickets from the sidebar, behind a confirm; project deletion never uses the recycle bin.
 
 ### Fixed
 - Markdown body normalization on read now mirrors the writer, so reloading or re-importing a ticket no longer shifts leading blank lines in its description.

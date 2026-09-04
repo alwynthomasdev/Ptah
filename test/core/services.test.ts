@@ -75,4 +75,15 @@ describe('recycle bin flow', () => {
     await ctx.projects.delete('PTAH');
     await expect(ctx.recycleBin.restore(t.id)).rejects.toThrow();
   });
+
+  it('deleting a project is permanent and never touches the recycle bin', async () => {
+    await ctx.tickets.create({ title: 'A', project: 'PTAH' });
+    await ctx.tickets.create({ title: 'B', project: 'PTAH' });
+
+    await ctx.projects.delete('PTAH');
+
+    expect(await ctx.store.exists(ctx.store.projectDir('PTAH'))).toBe(false);
+    expect(await ctx.projects.list()).toHaveLength(0);
+    expect(await ctx.recycleBin.list()).toHaveLength(0);
+  });
 });

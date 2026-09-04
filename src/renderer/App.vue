@@ -74,6 +74,9 @@ async function onProjectCreated() {
   await reloadTickets();
   scopeToProject(projects.activeKey);
 }
+
+// Project delete is permanent (no recycle bin); refresh the ticket set after.
+const onProjectDeleted = onProjectCreated;
 </script>
 
 <template>
@@ -88,6 +91,7 @@ async function onProjectCreated() {
           :active="projects.activeKey"
           @change="onProjectChange"
           @created="onProjectCreated"
+          @deleted="onProjectDeleted"
         />
       </div>
 
