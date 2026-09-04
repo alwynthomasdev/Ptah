@@ -1,6 +1,6 @@
 {
   "name": "ptah",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Ptah — a local-first personal ticket/todo system. All data lives as Markdown files on disk.",
   "author": "Alwyn Thomas <alwynthomas@live.co.uk>",
   "license": "MIT",

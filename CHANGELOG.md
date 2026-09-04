@@ -6,6 +6,8 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-04
+
 ### Added — Software updates
 - In-app update checking for packaged Windows and Linux builds: a "Software update" section in Settings checks the project's GitHub Releases, downloads an available update, and restarts to install it. macOS is excluded — Ptah's builds are unsigned, and macOS's update mechanism requires a signed and notarized app.
 - `window.ptah.updates.{check,download,install}` IPC surface, backed by a new `src/main/updater.ts` wrapper around `electron-updater`.
