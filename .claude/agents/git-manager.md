@@ -65,9 +65,19 @@ guess. Once you have the target version `X.Y.Z`:
 
 1. **Prepare the release commit** (do not commit yet):
    - Set `version` in `package.json` to `X.Y.Z`.
-   - In `CHANGELOG.md`, turn `## [Unreleased]` into
-     `## [X.Y.Z] - YYYY-MM-DD` (today's date), and add a fresh empty
-     `## [Unreleased]` above it.
+   - **Make the changelog section the release notes.** `.github/workflows/release.yml`
+     copies the `## [X.Y.Z]` section from `CHANGELOG.md` verbatim into the GitHub
+     Release body (plus an auto-appended "Full changelog" compare link), so that
+     section has to stand on its own:
+     - First reconcile `## [Unreleased]` against `git log <last vX.Y.Z tag>..HEAD`.
+       Every user-visible commit since the last release must have an entry; add
+       any that are missing before dating the section.
+     - Keep the Keep a Changelog structure (`### Added` / `Changed` / `Fixed` /
+       …). Don't collapse it into a bare prose paragraph — a short prose lead-in
+       above the subheadings is fine (see `[1.0.0]`), but the itemised changes
+       stay.
+   - Then turn `## [Unreleased]` into `## [X.Y.Z] - YYYY-MM-DD` (today's date),
+     and add a fresh empty `## [Unreleased]` above it.
    - Propose the commit: subject `Release vX.Y.Z`, body summarizing the headline
      changes from that changelog section.
    - Report the diff and the exact follow-up steps (commit → tag `vX.Y.Z` →

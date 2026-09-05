@@ -8,6 +8,7 @@ All notable changes to Ptah are documented here. The format follows
 
 ### Changed
 - The app icon (`build/icon.png`) is now a flat mark of the god Ptah — a mummiform figure in a skullcap and straight beard holding the composite was/djed/ankh sceptre — replacing the old "P" lettermark; regenerate it with `node scripts/build-icon.mjs`.
+- Release workflow (`.github/workflows/release.yml`): the GitHub Release body is now the matching `## [X.Y.Z]` section of `CHANGELOG.md` verbatim, with a `**Full changelog**` compare link to the previous tag appended. A new `notes` job creates the draft Release up front and the per-OS installer builds attach to it.
 
 ## [1.0.0] - 2026-09-05
 
