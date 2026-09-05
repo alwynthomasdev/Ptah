@@ -6,6 +6,8 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-05
+
 ### Added
 - A "Default project" field in Settings sets the display name of the always-present default project (its key stays `TODO`).
 - Move a ticket to a different project from its edit page: changing the Project field and saving (behind a confirm) mints it a new id in the target project and carries its attachments along.
