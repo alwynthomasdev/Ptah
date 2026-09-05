@@ -6,6 +6,10 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-09-05
+
+Adds a two-level ticket hierarchy and a fast ticket-capture path.
+
 ### Added — Epics & sub-tasks
 - Tickets now have a **type** (Task or Epic) and an optional **parent** ticket, forming a two-level hierarchy: a parent cannot itself have a parent, and a ticket that already has sub-tasks cannot be given one. Parent links may cross projects.
 - The ticket form gained a **Type** select and a searchable **Parent** picker (`ParentPicker.vue`) that spans every project and lists epics first; the ticket page shows a type badge, a link to the parent, and a **Sub-tasks** list.
