@@ -6,6 +6,15 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-05
+
+First stable release. All four originally-planned milestones are complete:
+foundation and Markdown-file storage, the swimlane/list/backlog/archive views
+with filtering and sorting, the recycle bin with attachments and
+import/export, and theming with cross-platform packaging — followed by the
+0.2.0 (software updates), 0.3.0 (Claude MCP integration), and 0.4.0 (search
+page, project moves) incremental releases.
+
 ## [0.4.0] - 2026-09-05
 
 ### Added
