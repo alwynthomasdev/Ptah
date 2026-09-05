@@ -17,6 +17,14 @@ All notable changes to Ptah are documented here. The format follows
 - Ticket frontmatter gained `type:` and `parent:` keys. Files without them load as `type: task` / `parent: null` and pick up the keys on their next save — there is no migration pass.
 - Moving a ticket to another project now re-points its sub-tasks at the new id. Soft-deleting a parent orphans its sub-tasks (they remain, with no parent). Restoring a sub-task whose parent is gone drops the dead link. Importing remaps parent links within the imported batch.
 
+### Added — Quick add
+- **Quick add**: a new top-bar primary button — and a global **Ctrl/Cmd+N** shortcut that works from any view — opens a minimal popup with just a title and a project picker. It stays open after each add, shows "Added `<id>`", and refocuses the title input, so a run of ideas can be captured without leaving the keyboard; the ticket list refreshes as tickets are created.
+- README: a new "Creating tickets" section covering Quick add vs. the full **+ New ticket** dialog.
+
+### Changed — Quick add
+- The top bar's **+ New ticket** is now a ghost button next to the new **Quick add** primary button; it still opens the full ticket dialog (type, parent, status, priority, due, labels, links, description).
+- The create dialog's project-default precedence (explicit preference → active project → default `TODO` project → first project) is now a shared `defaultProjectKey` helper in `src/renderer/lib/ticketForm.ts`, used by both Quick add and the full dialog.
+
 ## [1.0.1] - 2026-09-05
 
 ### Changed

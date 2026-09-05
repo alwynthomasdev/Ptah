@@ -1,4 +1,5 @@
 import type { Priority, Status, TicketType } from '@models/Ticket';
+import { DEFAULT_PROJECT_KEY } from '@models/Project';
 
 /**
  * Shape of the reactive form object bound by `TicketForm.vue`. Shared between
@@ -19,4 +20,23 @@ export interface TicketFormModel {
   urls: string;
   description: string;
   project: string;
+}
+
+/**
+ * Seed value for a "which project" dropdown, matching the create dialog's
+ * precedence: an explicit preference, else the active project, else the
+ * default `TODO` project if it exists, else the first project, else ''.
+ */
+export function defaultProjectKey(
+  preferred: string | null | undefined,
+  activeKey: string | null,
+  items: { key: string }[],
+): string {
+  return (
+    preferred ??
+    activeKey ??
+    (items.some((p) => p.key === DEFAULT_PROJECT_KEY)
+      ? DEFAULT_PROJECT_KEY
+      : (items[0]?.key ?? ''))
+  );
 }

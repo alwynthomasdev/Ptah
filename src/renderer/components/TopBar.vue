@@ -2,7 +2,7 @@
 import { useProjectsStore } from '../stores/projects';
 import ThemeToggle from './ThemeToggle.vue';
 
-const emit = defineEmits<{ new: [] }>();
+const emit = defineEmits<{ new: []; 'quick-add': [] }>();
 
 const projects = useProjectsStore();
 </script>
@@ -11,7 +11,14 @@ const projects = useProjectsStore();
   <header class="topbar">
     <div class="brand"><span class="mark">P</span> Ptah</div>
     <span class="spacer" />
-    <button class="primary btn-new" :disabled="!projects.items.length" @click="emit('new')">
+    <button
+      class="primary btn-new"
+      :disabled="!projects.items.length"
+      @click="emit('quick-add')"
+    >
+      Quick add
+    </button>
+    <button class="ghost btn-new" :disabled="!projects.items.length" @click="emit('new')">
       + New ticket
     </button>
     <ThemeToggle />

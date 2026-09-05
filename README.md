@@ -49,6 +49,16 @@ Named after the ancient Egyptian creator god.
 - Pick the active project (or **All projects**) in the sidebar; the search box in
   the top bar filters by title across the current scope.
 
+### Creating tickets
+
+- **Quick add** (top-bar button, or **Ctrl/Cmd+N** from anywhere) is a minimal
+  popup — just a title and a project. It stays open after each add and shows the
+  new ticket's id, so you can capture a run of ideas without leaving the keyboard.
+- **+ New ticket** opens the full dialog (type, parent, status, priority, due,
+  labels, links, Markdown description) for when a ticket needs detail up front.
+- Both default the project to the active one (falling back to the default `TODO`
+  project, then the first project).
+
 ### Filtering & sorting
 
 The toolbar has multi-select chips for **Priority**, **Labels** and **Project**

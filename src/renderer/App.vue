@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
 import { useSettingsStore } from './stores/settings';
 import { useProjectsStore } from './stores/projects';
 import { useTicketsStore } from './stores/tickets';
 import ProjectPicker from './components/ProjectPicker.vue';
+import QuickAddDialog from './components/QuickAddDialog.vue';
 import TicketDialog from './components/TicketDialog.vue';
 import TopBar from './components/TopBar.vue';
 import ViewTabs from './components/ViewTabs.vue';
@@ -19,6 +20,7 @@ const router = useRouter();
 const booting = ref(true);
 const error = ref<string | null>(null);
 const showNew = ref(false);
+const showQuickAdd = ref(false);
 
 const CHROME_ROUTES = ['board', 'list', 'backlog', 'archive'];
 const hasChrome = computed(() => CHROME_ROUTES.includes(String(route.name)));
@@ -47,6 +49,17 @@ async function boot() {
 
 onMounted(boot);
 
+/** Global Ctrl/Cmd+N → open Quick Add from any view. */
+function onKeydown(e: KeyboardEvent) {
+  if (e.altKey || e.shiftKey || !(e.ctrlKey || e.metaKey)) return;
+  if (e.key.toLowerCase() !== 'n') return;
+  if (!projects.items.length) return;
+  e.preventDefault();
+  showQuickAdd.value = true;
+}
+onMounted(() => window.addEventListener('keydown', onKeydown));
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
+
 async function onProjectChange(key: string | null) {
   projects.setActive(key);
   scopeToProject(key);
@@ -61,7 +74,7 @@ async function onProjectCreated() {
 
 <template>
   <div class="shell">
-    <TopBar @new="showNew = true" />
+    <TopBar @new="showNew = true" @quick-add="showQuickAdd = true" />
 
     <aside class="sidebar scroll-thin">
       <div class="side-section">
@@ -109,6 +122,13 @@ async function onProjectCreated() {
         showNew = false;
         reloadTickets();
       "
+    />
+
+    <QuickAddDialog
+      v-if="showQuickAdd"
+      :project-key="projects.activeKey"
+      @created="reloadTickets"
+      @close="showQuickAdd = false"
     />
   </div>
 </template>

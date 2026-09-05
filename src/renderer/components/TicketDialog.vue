@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import type { Ticket } from '@models/Ticket';
-import { DEFAULT_PROJECT_KEY } from '@models/Project';
 import { fromDateInput } from '@shared/dates';
 import { useTicketsStore } from '../stores/tickets';
 import { useProjectsStore } from '../stores/projects';
-import type { TicketFormModel } from '../lib/ticketForm';
+import { defaultProjectKey, type TicketFormModel } from '../lib/ticketForm';
 import TicketForm from './TicketForm.vue';
 
 const props = defineProps<{
@@ -30,10 +29,7 @@ const form = reactive<TicketFormModel>({
   labels: '',
   urls: '',
   description: '',
-  project:
-    props.projectKey ??
-    projects.activeKey ??
-    (projects.byKey(DEFAULT_PROJECT_KEY) ? DEFAULT_PROJECT_KEY : (projects.items[0]?.key ?? '')),
+  project: defaultProjectKey(props.projectKey, projects.activeKey, projects.orderedItems),
 });
 
 const heading = computed(() =>
