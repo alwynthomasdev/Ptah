@@ -6,6 +6,9 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- The app icon (`build/icon.png`) is now a flat mark of the god Ptah — a mummiform figure in a skullcap and straight beard holding the composite was/djed/ankh sceptre — replacing the old "P" lettermark; regenerate it with `node scripts/build-icon.mjs`.
+
 ## [1.0.0] - 2026-09-05
 
 First stable release. All four originally-planned milestones are complete:
