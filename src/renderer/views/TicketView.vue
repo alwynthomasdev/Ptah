@@ -8,7 +8,7 @@ import { computed, ref, onMounted } from 'vue';
 import type { CSSProperties } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import type { Ticket } from '@models/Ticket';
-import { PRIORITY_LABELS, STATUS_LABELS } from '@models/Ticket';
+import { PRIORITY_LABELS, STATUS_LABELS, TYPE_LABELS } from '@models/Ticket';
 import { formatDate, fromDateInput, toDateInput } from '@shared/dates';
 import { useTicketsStore } from '../stores/tickets';
 import { call, ptah } from '../api';
@@ -31,6 +31,16 @@ const saveError = ref<string | null>(null);
 const form = ref<TicketFormModel | null>(null);
 
 const id = computed(() => String(route.params.id));
+
+/** Sub-tasks of this ticket — read straight from the store (all projects loaded). */
+const children = computed(() => tickets.childrenOf(id.value));
+const parentTicket = computed(() =>
+  ticket.value?.parent ? (tickets.items.find((t) => t.id === ticket.value?.parent) ?? null) : null,
+);
+
+function goTo(ticketId: string) {
+  router.push({ name: 'ticket', params: { id: ticketId } });
+}
 
 async function load() {
   booting.value = true;
@@ -62,6 +72,8 @@ function startEdit() {
   if (!ticket.value) return;
   form.value = {
     title: ticket.value.title,
+    type: ticket.value.type,
+    parent: ticket.value.parent ?? '',
     status: ticket.value.status,
     priority: ticket.value.priority,
     due: toDateInput(ticket.value.due),
@@ -106,6 +118,8 @@ async function save() {
   try {
     let updated = await tickets.update(ticket.value.id, {
       title: form.value.title,
+      type: form.value.type,
+      parent: form.value.parent || null,
       status: form.value.status,
       priority: form.value.priority,
       due: fromDateInput(form.value.due),
@@ -115,6 +129,9 @@ async function save() {
     });
     if (projectChanged) {
       updated = await tickets.changeProject(updated.id, form.value.project);
+      // The move re-links sub-tasks on disk; refresh the store so the
+      // sub-tasks list reflects their new parent id.
+      await tickets.load();
     }
     ticket.value = updated;
     form.value = null;
@@ -176,6 +193,9 @@ function openUrl(url: string) {
           </div>
 
           <div class="meta row">
+            <span class="type-badge" :style="{ color: `var(--type-${ticket.type})` }">{{
+              TYPE_LABELS[ticket.type]
+            }}</span>
             <span class="status-pill" :style="statusPillStyle(ticket)">{{
               STATUS_LABELS[ticket.status]
             }}</span>
@@ -183,6 +203,15 @@ function openUrl(url: string) {
               PRIORITY_LABELS[ticket.priority]
             }}</span>
             <span v-if="ticket.due" class="due">Due {{ formatDate(ticket.due) }}</span>
+          </div>
+
+          <div v-if="ticket.parent" class="parent-row">
+            <span class="section-label">Parent</span>
+            <a href="#" class="link-row" @click.prevent="goTo(ticket.parent)">
+              <span class="card-id">{{ ticket.parent }}</span>
+              <span v-if="parentTicket">{{ parentTicket.title }}</span>
+              <span v-if="parentTicket" class="dim">· {{ parentTicket.project }}</span>
+            </a>
           </div>
 
           <div v-if="ticket.labels.length" class="labels">
@@ -202,6 +231,22 @@ function openUrl(url: string) {
             <span class="section-label">Description</span>
             <MarkdownView :source="ticket.description" :project="ticket.project" :ticket-id="ticket.id" />
           </div>
+
+          <div v-if="children.length" class="subtasks">
+            <span class="section-label">Sub-tasks ({{ children.length }})</span>
+            <ul>
+              <li v-for="c in children" :key="c.id">
+                <a href="#" class="link-row" @click.prevent="goTo(c.id)">
+                  <span class="card-id">{{ c.id }}</span>
+                  <span class="st-title">{{ c.title }}</span>
+                  <span class="dim">· {{ c.project }}</span>
+                  <span class="status-pill" :style="statusPillStyle(c)">{{
+                    STATUS_LABELS[c.status]
+                  }}</span>
+                </a>
+              </li>
+            </ul>
+          </div>
         </template>
 
         <template v-else-if="form">
@@ -209,6 +254,7 @@ function openUrl(url: string) {
             v-model="form"
             :project="ticket.project"
             :ticket-id="ticket.id"
+            :has-children="children.length > 0"
             @attached="onAttachmentsUpdated"
           />
 
@@ -271,6 +317,39 @@ function openUrl(url: string) {
 .priority {
   font-size: var(--fs-sm);
   font-weight: 600;
+}
+.type-badge {
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.parent-row .link-row,
+.subtasks .link-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--text);
+}
+.parent-row .link-row:hover,
+.subtasks .link-row:hover {
+  text-decoration: underline;
+}
+.subtasks ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.subtasks .st-title {
+  font-size: 12.5px;
+}
+.dim {
+  color: var(--text-faint);
+  font-size: var(--fs-sm);
 }
 .due {
   color: var(--text-faint);

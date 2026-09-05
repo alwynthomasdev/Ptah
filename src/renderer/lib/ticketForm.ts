@@ -1,4 +1,4 @@
-import type { Priority, Status } from '@models/Ticket';
+import type { Priority, Status, TicketType } from '@models/Ticket';
 
 /**
  * Shape of the reactive form object bound by `TicketForm.vue`. Shared between
@@ -9,6 +9,9 @@ import type { Priority, Status } from '@models/Ticket';
  */
 export interface TicketFormModel {
   title: string;
+  type: TicketType;
+  /** Parent ticket id, or '' for no parent. */
+  parent: string;
   status: Status;
   priority: Priority;
   due: string;

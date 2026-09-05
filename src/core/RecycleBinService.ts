@@ -51,6 +51,14 @@ export class RecycleBinService {
     }
     const ticket = markdownToTicket(id, project, await this.store.readText(binFile));
     ticket.deletedAt = null;
+    // A sub-task's parent may have been purged or moved while this sat in the
+    // bin; drop the link rather than restore a dangling reference.
+    if (ticket.parent) {
+      const { project: parentProject } = parseId(ticket.parent);
+      if (!(await this.store.exists(this.store.ticketFile(parentProject, ticket.parent)))) {
+        ticket.parent = null;
+      }
+    }
     await this.store.writeText(this.store.ticketFile(project, id), ticketToMarkdown(ticket));
     await this.store.remove(binFile);
     const attachSrc = this.store.recycledAttachmentsDir(id);

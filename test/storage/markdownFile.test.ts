@@ -30,6 +30,8 @@ describe('ticket <-> markdown', () => {
       {
         title: 'Do the thing',
         project: 'PTAH',
+        type: 'epic',
+        parent: 'ACME-3',
         status: 'wip',
         priority: 'high',
         due: '2026-05-01T00:00:00.000Z',
@@ -44,6 +46,8 @@ describe('ticket <-> markdown', () => {
       id: 'PTAH-7',
       title: 'Do the thing',
       project: 'PTAH',
+      type: 'epic',
+      parent: 'ACME-3',
       status: 'wip',
       priority: 'high',
       due: '2026-05-01T00:00:00.000Z',
@@ -54,10 +58,22 @@ describe('ticket <-> markdown', () => {
   });
 
   it('falls back to safe defaults for corrupt metadata', () => {
-    const t = markdownToTicket('PTAH-9', 'PTAH', '---\nstatus: bogus\npriority: nope\n---\nbody');
+    const t = markdownToTicket(
+      'PTAH-9',
+      'PTAH',
+      '---\nstatus: bogus\npriority: nope\ntype: story\nparent: not-an-id\n---\nbody',
+    );
     expect(t.status).toBe('backlog');
     expect(t.priority).toBe('medium');
+    expect(t.type).toBe('task');
+    expect(t.parent).toBeNull();
     expect(t.title).toBe('PTAH-9');
+  });
+
+  it('defaults type/parent when the keys are absent (old files)', () => {
+    const t = markdownToTicket('PTAH-9', 'PTAH', '---\nstatus: wip\n---\nbody');
+    expect(t.type).toBe('task');
+    expect(t.parent).toBeNull();
   });
 
   it('falls back to an empty array when urls is missing or not an array', () => {

@@ -6,18 +6,28 @@
  * page's edit mode) via `v-model`. No submit button — the parent owns
  * Save/Cancel/etc.
  */
-import { PRIORITIES, PRIORITY_LABELS, STATUSES, STATUS_LABELS } from '@models/Ticket';
+import {
+  PRIORITIES,
+  PRIORITY_LABELS,
+  STATUSES,
+  STATUS_LABELS,
+  TICKET_TYPES,
+  TYPE_LABELS,
+} from '@models/Ticket';
 import type { Ticket } from '@models/Ticket';
 import type { TicketFormModel } from '../lib/ticketForm';
 import { useProjectsStore } from '../stores/projects';
 import MarkdownEditor from './MarkdownEditor.vue';
+import ParentPicker from './ParentPicker.vue';
 
 const model = defineModel<TicketFormModel>({ required: true });
 const projects = useProjectsStore();
 
-defineProps<{
+const props = defineProps<{
   project?: string | null;
   ticketId?: string | null;
+  /** This ticket already has sub-tasks, so it can't itself be given a parent. */
+  hasChildren?: boolean;
 }>();
 const emit = defineEmits<{ attached: [ticket: Ticket] }>();
 </script>
@@ -30,6 +40,12 @@ const emit = defineEmits<{ attached: [ticket: Ticket] }>();
     </label>
 
     <div class="grid">
+      <label
+        >Type
+        <select v-model="model.type">
+          <option v-for="t in TICKET_TYPES" :key="t" :value="t">{{ TYPE_LABELS[t] }}</option>
+        </select>
+      </label>
       <label
         >Status
         <select v-model="model.status">
@@ -64,6 +80,16 @@ const emit = defineEmits<{ attached: [ticket: Ticket] }>();
       <textarea v-model="model.urls" rows="3" placeholder="https://example.com/issue/123" />
     </label>
 
+    <label
+      >Parent
+      <ParentPicker
+        v-model="model.parent"
+        :self-id="props.ticketId"
+        :disabled="props.hasChildren"
+        disabled-reason="This ticket has sub-tasks, so it can't also be a sub-task."
+      />
+    </label>
+
     <label class="md-field">
       <span>Description (Markdown)</span>
       <MarkdownEditor
@@ -96,7 +122,7 @@ label textarea {
 }
 .grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 12px;
 }
 </style>

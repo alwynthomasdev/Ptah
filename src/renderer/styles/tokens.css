@@ -33,6 +33,10 @@
   --p-high: #d9773f;
   --p-highest: #d9483f;
 
+  /* ticket type — identical in both themes */
+  --type-task: #8b93a1;
+  --type-epic: #8b7bb0;
+
   /* text drawn on top of a status pill (fixed, theme-independent) */
   --status-fg: #ffffff;
   --status-fg-wip: #1a1e25;

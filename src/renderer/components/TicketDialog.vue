@@ -10,6 +10,8 @@ import TicketForm from './TicketForm.vue';
 
 const props = defineProps<{
   projectKey?: string | null;
+  /** Prefill the parent field, e.g. when adding a sub-task to an epic. */
+  parentId?: string | null;
 }>();
 const emit = defineEmits<{ close: []; saved: [ticket: Ticket] }>();
 
@@ -20,6 +22,8 @@ const saving = ref(false);
 
 const form = reactive<TicketFormModel>({
   title: '',
+  type: 'task',
+  parent: props.parentId ?? '',
   status: 'backlog',
   priority: 'medium',
   due: '',
@@ -58,6 +62,8 @@ async function submit() {
     const result = await tickets.create({
       title: form.title,
       project: form.project,
+      type: form.type,
+      parent: form.parent || null,
       status: form.status,
       priority: form.priority,
       due: fromDateInput(form.due),

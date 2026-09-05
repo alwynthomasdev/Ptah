@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { Ticket } from '@models/Ticket';
-import { isPriority, isStatus, normalizeLabels, normalizeUrls } from '@models/Ticket';
-import { parseId } from '@shared/ids';
+import { isPriority, isStatus, isTicketType, normalizeLabels, normalizeUrls } from '@models/Ticket';
+import { isValidId, parseId } from '@shared/ids';
 import type { FileStore } from './FileStore';
 import { parseMarkdown, stringifyMarkdown } from './markdownFile';
 
@@ -134,6 +134,8 @@ export function ticketToMarkdown(ticket: Ticket): string {
     id: ticket.id,
     title: ticket.title,
     project: ticket.project,
+    type: ticket.type,
+    parent: ticket.parent ?? null,
     status: ticket.status,
     priority: ticket.priority,
     created: ticket.created,
@@ -152,11 +154,17 @@ export function markdownToTicket(id: string, projectKey: string, raw: string): T
   const labels = Array.isArray(data.labels) ? data.labels.map(String) : [];
   const urls = Array.isArray(data.urls) ? data.urls.map(String) : [];
   const due = data.due == null || data.due === '' ? null : String(data.due);
+  const parent =
+    typeof data.parent === 'string' && isValidId(data.parent) && data.parent !== id
+      ? data.parent
+      : null;
 
   return {
     id: typeof data.id === 'string' && data.id ? data.id : id,
     title: String(data.title ?? id),
     project: typeof data.project === 'string' && data.project ? data.project : projectKey,
+    type: isTicketType(data.type) ? data.type : 'task',
+    parent,
     status: isStatus(status) ? status : 'backlog',
     priority: isPriority(priority) ? priority : 'medium',
     created: String(data.created ?? new Date(0).toISOString()),

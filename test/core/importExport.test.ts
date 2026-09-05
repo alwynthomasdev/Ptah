@@ -98,6 +98,31 @@ describe('ImportExportService', () => {
     ]);
   });
 
+  it('re-links an epic and its sub-task when both are in the same project zip', async () => {
+    const epic = await ctx.tickets.create({ title: 'Epic', project: 'SRC', type: 'epic' });
+    await ctx.tickets.create({ title: 'Child', project: 'SRC', parent: epic.id });
+    const dest = path.join(work, 'epic-project.zip');
+
+    await ctx.importExport.exportProject('SRC', dest, { media: false });
+    const imported = await ctx.importExport.importFromFiles([dest], 'DST');
+
+    const newEpic = imported.find((t) => t.title === 'Epic')!;
+    const newChild = imported.find((t) => t.title === 'Child')!;
+    expect(newEpic.type).toBe('epic');
+    expect(newChild.parent).toBe(newEpic.id);
+    expect(newChild.parent).not.toBe(epic.id);
+  });
+
+  it('drops a parent link when the parent is not part of the import batch', async () => {
+    const epic = await ctx.tickets.create({ title: 'Epic', project: 'SRC', type: 'epic' });
+    const child = await ctx.tickets.create({ title: 'Child', project: 'SRC', parent: epic.id });
+    const dest = path.join(work, 'child-only.md');
+
+    await ctx.importExport.exportTickets([child.id], dest, { media: false });
+    const [imported] = await ctx.importExport.importFromFiles([dest], 'DST');
+    expect(imported.parent).toBeNull();
+  });
+
   it('imports a hand-written .md with missing fields using safe defaults', async () => {
     const dest = path.join(work, 'sparse.md');
     await fs.writeFile(dest, '---\ntitle: Sparse\n---\n\nJust a body.\n');

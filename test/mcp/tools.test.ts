@@ -4,6 +4,7 @@ import {
   createTicket,
   deleteTicket,
   getTicket,
+  listChildren,
   listProjects,
   listTickets,
   updateTicket,
@@ -39,6 +40,8 @@ describe('listTickets / getTicket', () => {
         id: created.id,
         title: 'Write docs',
         project: 'PTAH',
+        type: 'task',
+        parent: null,
         status: 'backlog',
         priority: 'medium',
         due: null,
@@ -99,6 +102,30 @@ describe('updateTicket', () => {
     const created = await createTicket(ctx, { title: 'A', project: 'PTAH', due: '2026-01-01' });
     const updated = await updateTicket(ctx, { id: created.id, title: 'A renamed' });
     expect(updated.due).toBe('2026-01-01');
+  });
+
+  it('sets type and a cross-project parent, and clears the parent with null', async () => {
+    const epic = await createTicket(ctx, { title: 'Epic', project: 'PTAH', type: 'epic' });
+    const child = await createTicket(ctx, { title: 'Child', project: 'ACME' });
+
+    const linked = await updateTicket(ctx, { id: child.id, parent: epic.id });
+    expect(linked.parent).toBe(epic.id);
+
+    const detached = await updateTicket(ctx, { id: child.id, parent: null });
+    expect(detached.parent).toBeNull();
+  });
+});
+
+describe('listChildren', () => {
+  it('returns the cross-project sub-tasks of a ticket as summaries', async () => {
+    const epic = await createTicket(ctx, { title: 'Epic', project: 'PTAH', type: 'epic' });
+    const a = await createTicket(ctx, { title: 'A', project: 'PTAH', parent: epic.id });
+    const b = await createTicket(ctx, { title: 'B', project: 'ACME', parent: epic.id });
+    await createTicket(ctx, { title: 'unrelated', project: 'ACME' });
+
+    const children = await listChildren(ctx, { id: epic.id });
+    expect(children.map((c) => c.id).sort()).toEqual([a.id, b.id].sort());
+    expect(children[0]).not.toHaveProperty('description');
   });
 });
 

@@ -80,6 +80,92 @@ describe('TicketService.changeProject', () => {
     expect(result.project).toBe('PTAH');
     expect((await ctx.tickets.get(t.id)).id).toBe(t.id);
   });
+
+  it('re-links cross-project sub-tasks to the epic’s new id', async () => {
+    const epic = await ctx.tickets.create({ title: 'Epic', project: 'PTAH', type: 'epic' });
+    const child = await ctx.tickets.create({ title: 'Child', project: 'ACME', parent: epic.id });
+
+    const moved = await ctx.tickets.changeProject(epic.id, 'ACME');
+
+    expect((await ctx.tickets.get(child.id)).parent).toBe(moved.id); // child re-pointed
+    expect(await ctx.tickets.listChildren(epic.id)).toHaveLength(0); // old id has none
+  });
+
+  it('a moved sub-task keeps its (cross-project) parent link', async () => {
+    const epic = await ctx.tickets.create({ title: 'Epic', project: 'PTAH', type: 'epic' });
+    const child = await ctx.tickets.create({ title: 'Child', project: 'PTAH', parent: epic.id });
+
+    const moved = await ctx.tickets.changeProject(child.id, 'ACME');
+    expect(moved.parent).toBe(epic.id);
+    expect((await ctx.tickets.listChildren(epic.id)).map((c) => c.id)).toEqual([moved.id]);
+  });
+});
+
+describe('epic / parent hierarchy', () => {
+  beforeEach(async () => {
+    await ctx.projects.create({ key: 'PTAH', name: 'Ptah' });
+    await ctx.projects.create({ key: 'ACME', name: 'Acme' });
+  });
+
+  it('links a sub-task to an epic in another project and lists it', async () => {
+    const epic = await ctx.tickets.create({ title: 'Epic', project: 'PTAH', type: 'epic' });
+    const child = await ctx.tickets.create({ title: 'Child', project: 'ACME', parent: epic.id });
+
+    expect(child.parent).toBe(epic.id);
+    expect((await ctx.tickets.listChildren(epic.id)).map((c) => c.id)).toEqual([child.id]);
+  });
+
+  it('rejects a parent that does not exist', async () => {
+    await expect(
+      ctx.tickets.create({ title: 'x', project: 'PTAH', parent: 'PTAH-999' }),
+    ).rejects.toThrow(/does not exist/i);
+  });
+
+  it('rejects a self-parent on update', async () => {
+    const t = await ctx.tickets.create({ title: 'x', project: 'PTAH' });
+    await expect(ctx.tickets.update(t.id, { parent: t.id })).rejects.toThrow(/its own parent/i);
+  });
+
+  it('rejects nesting three levels deep', async () => {
+    const epic = await ctx.tickets.create({ title: 'Epic', project: 'PTAH', type: 'epic' });
+    const mid = await ctx.tickets.create({ title: 'Mid', project: 'PTAH', parent: epic.id });
+    const leaf = await ctx.tickets.create({ title: 'Leaf', project: 'PTAH' });
+
+    await expect(ctx.tickets.update(leaf.id, { parent: mid.id })).rejects.toThrow(/two levels/i);
+  });
+
+  it('refuses to give a parent to a ticket that already has sub-tasks', async () => {
+    const parent = await ctx.tickets.create({ title: 'P', project: 'PTAH' });
+    await ctx.tickets.create({ title: 'C', project: 'PTAH', parent: parent.id });
+    const other = await ctx.tickets.create({ title: 'O', project: 'PTAH', type: 'epic' });
+
+    await expect(ctx.tickets.update(parent.id, { parent: other.id })).rejects.toThrow(
+      /sub-tasks of its own/i,
+    );
+  });
+
+  it('orphans sub-tasks when the epic is soft-deleted; restore does not re-attach', async () => {
+    const epic = await ctx.tickets.create({ title: 'Epic', project: 'PTAH', type: 'epic' });
+    const child = await ctx.tickets.create({ title: 'Child', project: 'ACME', parent: epic.id });
+
+    await ctx.tickets.delete(epic.id);
+    expect((await ctx.tickets.get(child.id)).parent).toBeNull();
+
+    await ctx.recycleBin.restore(epic.id);
+    expect((await ctx.tickets.get(child.id)).parent).toBeNull();
+  });
+
+  it('drops a dangling parent link on restore when the parent was purged', async () => {
+    const epic = await ctx.tickets.create({ title: 'Epic', project: 'PTAH', type: 'epic' });
+    const child = await ctx.tickets.create({ title: 'Child', project: 'PTAH', parent: epic.id });
+
+    await ctx.tickets.delete(child.id);
+    await ctx.tickets.delete(epic.id);
+    await ctx.recycleBin.purge(epic.id);
+
+    const restored = await ctx.recycleBin.restore(child.id);
+    expect(restored.parent).toBeNull();
+  });
 });
 
 describe('recycle bin flow', () => {

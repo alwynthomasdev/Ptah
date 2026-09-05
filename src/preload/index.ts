@@ -21,6 +21,7 @@ const api: PtahApi = {
   },
   tickets: {
     list: (projectKey) => ipcRenderer.invoke(IPC.ticketsList, projectKey),
+    listChildren: (id) => ipcRenderer.invoke(IPC.ticketsListChildren, id),
     get: (id) => ipcRenderer.invoke(IPC.ticketsGet, id),
     create: (input) => ipcRenderer.invoke(IPC.ticketsCreate, input),
     update: (id, patch) => ipcRenderer.invoke(IPC.ticketsUpdate, id, patch),

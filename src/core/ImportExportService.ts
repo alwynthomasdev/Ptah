@@ -77,17 +77,53 @@ export class ImportExportService {
       throw new Error(`Project "${targetProjectKey}" does not exist.`);
     }
     const created: Ticket[] = [];
+    /** old ticket id (from the source file) -> freshly minted id in the target. */
+    const idMap = new Map<string, string>();
     for (const src of srcPaths) {
       if (src.toLowerCase().endsWith('.zip')) {
-        created.push(...(await this.importZip(src, targetProjectKey)));
+        created.push(...(await this.importZip(src, targetProjectKey, idMap)));
       } else {
-        created.push(await this.saveImported(await this.store.readText(src), targetProjectKey, null, null));
+        created.push(
+          await this.saveImported(
+            await this.store.readText(src),
+            targetProjectKey,
+            null,
+            null,
+            idMap,
+          ),
+        );
       }
     }
-    return created;
+    return this.relinkImported(created, idMap);
   }
 
-  private async importZip(src: string, projectKey: string): Promise<Ticket[]> {
+  /**
+   * Imported tickets got fresh ids, so any `parent` still points at a source
+   * id. Remap it within this batch; drop the link when the parent wasn't
+   * imported alongside it.
+   */
+  private async relinkImported(created: Ticket[], idMap: Map<string, string>): Promise<Ticket[]> {
+    const out: Ticket[] = [];
+    for (const ticket of created) {
+      if (ticket.parent == null) {
+        out.push(ticket);
+        continue;
+      }
+      const remapped = idMap.get(ticket.parent) ?? null;
+      if (remapped === ticket.parent) {
+        out.push(ticket);
+      } else {
+        out.push(await this.tickets.save({ ...ticket, parent: remapped }));
+      }
+    }
+    return out;
+  }
+
+  private async importZip(
+    src: string,
+    projectKey: string,
+    idMap: Map<string, string>,
+  ): Promise<Ticket[]> {
     const zip = new AdmZip(await this.store.readBytes(src));
     const created: Ticket[] = [];
     for (const entry of zip.getEntries()) {
@@ -96,7 +132,7 @@ export class ImportExportService {
       if (!/\.md$/i.test(name)) continue;
       const oldId = path.basename(name, path.extname(name));
       created.push(
-        await this.saveImported(entry.getData().toString('utf8'), projectKey, oldId, zip),
+        await this.saveImported(entry.getData().toString('utf8'), projectKey, oldId, zip, idMap),
       );
     }
     return created;
@@ -107,9 +143,12 @@ export class ImportExportService {
     projectKey: string,
     oldId: string | null,
     zip: AdmZip | null,
+    idMap: Map<string, string>,
   ): Promise<Ticket> {
     const newId = formatId(projectKey, await this.projects.bumpCounter(projectKey));
     const parsed = markdownToTicket(newId, projectKey, raw);
+    const sourceId = oldId ?? (parsed.id || null);
+    if (sourceId) idMap.set(sourceId, newId);
     await this.tickets.save({ ...parsed, id: newId, project: projectKey, deletedAt: null });
 
     if (zip && oldId) {

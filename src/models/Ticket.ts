@@ -4,6 +4,8 @@
  * is the detailed Markdown description.
  */
 
+import { isValidId } from '@shared/ids';
+
 export const STATUSES = ['backlog', 'scheduled', 'wip', 'paused', 'done', 'archive'] as const;
 export type Status = (typeof STATUSES)[number];
 
@@ -36,12 +38,28 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
   highest: 'Highest',
 };
 
+export const TICKET_TYPES = ['task', 'epic'] as const;
+export type TicketType = (typeof TICKET_TYPES)[number];
+
+export const TYPE_LABELS: Record<TicketType, string> = {
+  task: 'Task',
+  epic: 'Epic',
+};
+
 export interface Ticket {
   /** `<PROJECTKEY>-<n>`, e.g. "PTAH-12". Unique across the store. */
   id: string;
   title: string;
   /** Project key this ticket belongs to. */
   project: string;
+  /** `epic` groups other tickets; `task` is the default unit of work. */
+  type: TicketType;
+  /**
+   * Id of the ticket this one sits under, or null. May reference a ticket in a
+   * different project. Nesting is two levels deep: a parent has no parent of
+   * its own.
+   */
+  parent: string | null;
   status: Status;
   priority: Priority;
   /** ISO-8601 timestamp. */
@@ -66,6 +84,8 @@ export interface Ticket {
 export interface NewTicketInput {
   title: string;
   project: string;
+  type?: TicketType;
+  parent?: string | null;
   status?: Status;
   priority?: Priority;
   due?: string | null;
@@ -76,7 +96,7 @@ export interface NewTicketInput {
 
 /** Mutable fields on an existing ticket. */
 export type TicketPatch = Partial<
-  Pick<Ticket, 'title' | 'status' | 'priority' | 'due' | 'labels' | 'urls' | 'description'>
+  Pick<Ticket, 'title' | 'type' | 'parent' | 'status' | 'priority' | 'due' | 'labels' | 'urls' | 'description'>
 >;
 
 export function isStatus(v: unknown): v is Status {
@@ -85,6 +105,20 @@ export function isStatus(v: unknown): v is Status {
 
 export function isPriority(v: unknown): v is Priority {
   return typeof v === 'string' && (PRIORITIES as readonly string[]).includes(v);
+}
+
+export function isTicketType(v: unknown): v is TicketType {
+  return typeof v === 'string' && (TICKET_TYPES as readonly string[]).includes(v);
+}
+
+/**
+ * Validate a `parent` reference's *shape* for the given child id: a well-formed
+ * ticket id that isn't the child itself. Structural rules that need other
+ * tickets (parent exists, two-level cap) live in `TicketService`.
+ */
+function validateParentShape(parent: string, childId: string): void {
+  if (!isValidId(parent)) throw new Error(`Malformed parent ticket id: "${parent}".`);
+  if (parent === childId) throw new Error("A ticket can't be its own parent.");
 }
 
 /**
@@ -96,15 +130,21 @@ export function createTicket(id: string, input: NewTicketInput, now: Date = new 
   if (!title) {
     throw new Error('Ticket title must not be empty.');
   }
+  const type = input.type ?? 'task';
   const status = input.status ?? 'backlog';
   const priority = input.priority ?? 'medium';
+  if (!isTicketType(type)) throw new Error(`Unknown ticket type "${type}".`);
   if (!isStatus(status)) throw new Error(`Unknown status "${status}".`);
   if (!isPriority(priority)) throw new Error(`Unknown priority "${priority}".`);
+  const parent = input.parent ?? null;
+  if (parent !== null) validateParentShape(parent, id);
 
   return {
     id,
     title,
     project: input.project,
+    type,
+    parent,
     status,
     priority,
     created: now.toISOString(),
@@ -124,6 +164,14 @@ export function applyPatch(ticket: Ticket, patch: TicketPatch): Ticket {
     const t = patch.title.trim();
     if (!t) throw new Error('Ticket title must not be empty.');
     next.title = t;
+  }
+  if (patch.type !== undefined) {
+    if (!isTicketType(patch.type)) throw new Error(`Unknown ticket type "${patch.type}".`);
+    next.type = patch.type;
+  }
+  if (patch.parent !== undefined) {
+    if (patch.parent !== null) validateParentShape(patch.parent, ticket.id);
+    next.parent = patch.parent;
   }
   if (patch.status !== undefined) {
     if (!isStatus(patch.status)) throw new Error(`Unknown status "${patch.status}".`);

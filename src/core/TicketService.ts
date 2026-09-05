@@ -27,10 +27,16 @@ export class TicketService {
     return this.tickets.get(id);
   }
 
+  /** Every live ticket whose `parent` points at `parentId`, across all projects. */
+  async listChildren(parentId: string): Promise<Ticket[]> {
+    return (await this.list()).filter((t) => t.parent === parentId);
+  }
+
   async create(input: NewTicketInput): Promise<Ticket> {
     if (!(await this.projects.exists(input.project))) {
       throw new Error(`Project "${input.project}" does not exist.`);
     }
+    if (input.parent != null) await this.assertParentAllowed(null, input.parent);
     const n = await this.projects.bumpCounter(input.project);
     const ticket = createTicket(formatId(input.project, n), input);
     return this.tickets.save(ticket);
@@ -38,6 +44,7 @@ export class TicketService {
 
   async update(id: string, patch: TicketPatch): Promise<Ticket> {
     const current = await this.tickets.get(id);
+    if (typeof patch.parent === 'string') await this.assertParentAllowed(id, patch.parent);
     return this.tickets.save(applyPatch(current, patch));
   }
 
@@ -51,13 +58,46 @@ export class TicketService {
     if (target === current.project) return current; // no-op, allowed
     const n = await this.projects.bumpCounter(target);
     const newId = formatId(target, n);
-    return this.tickets.move(current, newId, target);
+    const moved = await this.tickets.move(current, newId, target);
+    // The id just changed; repoint any sub-tasks that referenced the old one.
+    await this.relinkParent(id, newId);
+    return moved;
   }
 
-  /** Soft-delete: move the ticket to the recycle bin. */
+  /** Soft-delete: move the ticket to the recycle bin, orphaning its sub-tasks. */
   async delete(id: string): Promise<void> {
     const ticket = await this.tickets.get(id);
+    for (const child of await this.listChildren(id)) {
+      await this.tickets.save({ ...child, parent: null });
+    }
     await this.bin.moveToBin(ticket);
+  }
+
+  /**
+   * Guard the two-level hierarchy for a proposed `child -> parent` link.
+   * `childId` is null when the child doesn't exist yet (creation).
+   */
+  private async assertParentAllowed(childId: string | null, parentId: string): Promise<void> {
+    if (parentId === childId) throw new Error("A ticket can't be its own parent.");
+    if (!(await this.tickets.exists(parentId))) {
+      throw new Error(`Parent ticket "${parentId}" does not exist.`);
+    }
+    const parent = await this.tickets.get(parentId);
+    if (parent.parent != null) {
+      throw new Error(
+        `"${parentId}" is already a sub-task of "${parent.parent}"; nesting is two levels deep.`,
+      );
+    }
+    if (childId != null && (await this.listChildren(childId)).length > 0) {
+      throw new Error(`"${childId}" has sub-tasks of its own and can't also be a sub-task.`);
+    }
+  }
+
+  /** Rewrite every ticket whose `parent` is `oldId` to point at `newId`. */
+  private async relinkParent(oldId: string, newId: string): Promise<void> {
+    for (const t of await this.list()) {
+      if (t.parent === oldId) await this.tickets.save({ ...t, parent: newId });
+    }
   }
 
   // ---- attachments -------------------------------------------------------

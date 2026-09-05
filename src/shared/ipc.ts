@@ -43,6 +43,7 @@ export const IPC = {
   projectsDelete: 'projects:delete',
 
   ticketsList: 'tickets:list',
+  ticketsListChildren: 'tickets:listChildren',
   ticketsGet: 'tickets:get',
   ticketsCreate: 'tickets:create',
   ticketsUpdate: 'tickets:update',
@@ -94,6 +95,8 @@ export interface PtahApi {
   };
   tickets: {
     list(projectKey?: string): Promise<Result<Ticket[]>>;
+    /** Live tickets whose `parent` is `id`, across every project. */
+    listChildren(id: string): Promise<Result<Ticket[]>>;
     get(id: string): Promise<Result<Ticket>>;
     create(input: NewTicketInput): Promise<Result<Ticket>>;
     update(id: string, patch: TicketPatch): Promise<Result<Ticket>>;

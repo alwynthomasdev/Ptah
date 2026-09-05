@@ -96,6 +96,7 @@ export async function registerIpc(): Promise<void> {
   h(IPC.ticketsList, (projectKey) =>
     context.tickets.list(projectKey ? String(projectKey) : undefined),
   );
+  h(IPC.ticketsListChildren, (id) => context.tickets.listChildren(String(id)));
   h(IPC.ticketsGet, (id) => context.tickets.get(String(id)));
   h(IPC.ticketsCreate, (input) => context.tickets.create(input as never));
   h(IPC.ticketsUpdate, (id, patch) => context.tickets.update(String(id), patch as never));

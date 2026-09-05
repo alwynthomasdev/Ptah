@@ -6,6 +6,17 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+### Added — Epics & sub-tasks
+- Tickets now have a **type** (Task or Epic) and an optional **parent** ticket, forming a two-level hierarchy: a parent cannot itself have a parent, and a ticket that already has sub-tasks cannot be given one. Parent links may cross projects.
+- The ticket form gained a **Type** select and a searchable **Parent** picker (`ParentPicker.vue`) that spans every project and lists epics first; the ticket page shows a type badge, a link to the parent, and a **Sub-tasks** list.
+- New `tickets.listChildren` IPC and a matching `window.ptah` method.
+- MCP: `ptah_list_tickets` summaries now include `type` / `parent`, `ptah_create_ticket` and `ptah_update_ticket` accept both fields, and a new **`ptah_list_children`** tool lists a ticket's sub-tasks (7 tools total). `docs/claude-integration.md` updated.
+- README: features list, ticket-file frontmatter example, and a new "Epics & sub-tasks" section.
+
+### Changed — Epics & sub-tasks
+- Ticket frontmatter gained `type:` and `parent:` keys. Files without them load as `type: task` / `parent: null` and pick up the keys on their next save — there is no migration pass.
+- Moving a ticket to another project now re-points its sub-tasks at the new id. Soft-deleting a parent orphans its sub-tasks (they remain, with no parent). Restoring a sub-task whose parent is gone drops the dead link. Importing remaps parent links within the imported batch.
+
 ## [1.0.1] - 2026-09-05
 
 ### Changed

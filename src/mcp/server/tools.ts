@@ -2,7 +2,14 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { AppContext } from '@core/AppContext';
 import type { Project } from '@models/Project';
-import { PRIORITIES, STATUSES, type NewTicketInput, type Ticket, type TicketPatch } from '@models/Ticket';
+import {
+  PRIORITIES,
+  STATUSES,
+  TICKET_TYPES,
+  type NewTicketInput,
+  type Ticket,
+  type TicketPatch,
+} from '@models/Ticket';
 import { getContext } from './context';
 
 /**
@@ -14,6 +21,8 @@ export interface TicketSummary {
   id: string;
   title: string;
   project: string;
+  type: Ticket['type'];
+  parent: string | null;
   status: Ticket['status'];
   priority: Ticket['priority'];
   due: string | null;
@@ -25,6 +34,8 @@ function toSummary(t: Ticket): TicketSummary {
     id: t.id,
     title: t.title,
     project: t.project,
+    type: t.type,
+    parent: t.parent,
     status: t.status,
     priority: t.priority,
     due: t.due,
@@ -42,6 +53,14 @@ export async function listTickets(
 
 export async function getTicket(ctx: AppContext, args: { id: string }): Promise<Ticket> {
   return ctx.tickets.get(args.id);
+}
+
+export async function listChildren(
+  ctx: AppContext,
+  args: { id: string },
+): Promise<TicketSummary[]> {
+  const children = await ctx.tickets.listChildren(args.id);
+  return children.map(toSummary);
 }
 
 export async function createTicket(ctx: AppContext, args: NewTicketInput): Promise<Ticket> {
@@ -86,8 +105,11 @@ function toolHandler<Args>(fn: (args: Args) => Promise<unknown>) {
 
 const statusSchema = z.enum(STATUSES);
 const prioritySchema = z.enum(PRIORITIES);
+const typeSchema = z.enum(TICKET_TYPES);
 /** Three-state on update: absent = don't change, `null` = clear, string = set. */
 const dueSchema = z.union([z.string(), z.null()]);
+/** Same three-state contract as `dueSchema`, for the parent link. */
+const parentSchema = z.union([z.string(), z.null()]);
 
 export function registerTools(server: McpServer, configPath: string): void {
   const withContext = <Args, T>(fn: (ctx: AppContext, args: Args) => Promise<T>) =>
@@ -119,6 +141,19 @@ export function registerTools(server: McpServer, configPath: string): void {
   );
 
   server.registerTool(
+    'ptah_list_children',
+    {
+      title: 'List sub-tasks',
+      description:
+        'List the sub-tasks (child tickets) of one ticket, across every project. Returns a trimmed summary of each.',
+      inputSchema: {
+        id: z.string().describe('Parent ticket id, e.g. "PTAH-3".'),
+      },
+    },
+    withContext(listChildren),
+  );
+
+  server.registerTool(
     'ptah_create_ticket',
     {
       title: 'Create ticket',
@@ -126,6 +161,11 @@ export function registerTools(server: McpServer, configPath: string): void {
       inputSchema: {
         title: z.string(),
         project: z.string().describe('Project key the ticket belongs to, e.g. "PTAH".'),
+        type: typeSchema.optional().describe('"task" (default) or "epic".'),
+        parent: z
+          .string()
+          .optional()
+          .describe('Parent ticket id, e.g. "PTAH-3". May be in another project. Two levels max.'),
         status: statusSchema.optional(),
         priority: prioritySchema.optional(),
         due: z.string().optional().describe('ISO-8601 date/timestamp.'),
@@ -142,10 +182,12 @@ export function registerTools(server: McpServer, configPath: string): void {
     {
       title: 'Update ticket',
       description:
-        'Patch fields on an existing ticket. Omit a field to leave it unchanged; pass "due": null to clear the due date.',
+        'Patch fields on an existing ticket. Omit a field to leave it unchanged; pass "due": null to clear the due date, "parent": null to detach from its epic/parent.',
       inputSchema: {
         id: z.string(),
         title: z.string().optional(),
+        type: typeSchema.optional(),
+        parent: parentSchema.optional().describe('Parent ticket id, or null to detach.'),
         status: statusSchema.optional(),
         priority: prioritySchema.optional(),
         due: dueSchema.optional(),

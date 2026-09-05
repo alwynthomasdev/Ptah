@@ -60,6 +60,10 @@ export const useTicketsStore = defineStore('tickets', {
       }
       return n;
     },
+    /** Direct sub-tasks of a ticket, across every project. */
+    childrenOf(s) {
+      return (id: string): Ticket[] => s.items.filter((t) => t.parent === id);
+    },
     /** Sorted, distinct labels across the project scope. */
     labelsInView(s): string[] {
       const seen = new Set<string>();

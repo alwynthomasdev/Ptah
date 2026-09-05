@@ -6,16 +6,20 @@ edit, and delete your tickets directly, as part of a normal conversation.
 
 ## What it does
 
-Once connected, Claude has access to six tools:
+Once connected, Claude has access to seven tools:
 
 | Tool | What it does |
 |---|---|
-| `ptah_list_tickets` | List tickets, optionally scoped to one project. Returns a trimmed summary of each (id, title, project, status, priority, due date, labels) — not the full description, so a large list doesn't blow up Claude's context. |
+| `ptah_list_tickets` | List tickets, optionally scoped to one project. Returns a trimmed summary of each (id, title, project, type, parent, status, priority, due date, labels) — not the full description, so a large list doesn't blow up Claude's context. |
 | `ptah_get_ticket` | Get the full record for one ticket by id (e.g. `PTAH-12`), including its Markdown description. |
-| `ptah_create_ticket` | Create a new ticket in an existing project. |
-| `ptah_update_ticket` | Patch fields on an existing ticket. Omitted fields are left unchanged; passing `due: null` clears the due date. |
+| `ptah_list_children` | List the sub-tasks of one ticket, across every project. |
+| `ptah_create_ticket` | Create a new ticket in an existing project. Accepts `type` (`task` or `epic`) and `parent` (the id of the ticket it sits under — may be in another project). |
+| `ptah_update_ticket` | Patch fields on an existing ticket. Omitted fields are left unchanged; passing `due: null` clears the due date, and `parent: null` detaches it from its epic/parent. |
 | `ptah_delete_ticket` | Soft-delete a ticket (moves it to the recycle bin, same as deleting from the app). |
 | `ptah_list_projects` | List every project, so Claude can pick a valid project key before creating a ticket. |
+
+Parent/child nesting is two levels deep: an epic (or any ticket) can hold sub-tasks, but a
+sub-task cannot itself have sub-tasks.
 
 These tools operate on the same data directory Ptah itself is currently configured to use
 (see Settings → Data folder) — Claude is reading and writing the same Markdown files you'd

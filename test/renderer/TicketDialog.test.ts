@@ -52,9 +52,9 @@ beforeEach(() => {
   ptahMock.tickets.create.mockClear();
 });
 
-// TicketForm always renders 4 <select>s (Status, Priority, Due date is an
-// input, then Project), so `wrapper.get('select')` alone is ambiguous — find
-// the one inside the label whose text starts with "Project".
+// TicketForm renders several <select>s (Type, Status, Priority, Project; Due
+// date is an input), so `wrapper.get('select')` alone is ambiguous — find the
+// one inside the label whose text starts with "Project".
 function getProjectSelect(wrapper: ReturnType<typeof mount>) {
   const projectLabel = wrapper.findAll('label').find((l) => l.text().startsWith('Project'));
   if (!projectLabel) throw new Error('Project label/select not found');
@@ -100,5 +100,28 @@ describe('TicketDialog — default project selection', () => {
 
     expect(ptahMock.tickets.create).toHaveBeenCalledTimes(1);
     expect(ptahMock.tickets.create.mock.calls[0][0]).toMatchObject({ project: 'TODO' });
+  });
+});
+
+describe('TicketDialog — type and parent', () => {
+  it('sends type and a null parent by default; carries a prefilled parentId', async () => {
+    const projects = useProjectsStore();
+    projects.items = [makeProject('TODO', 'To Do')];
+    projects.activeKey = 'TODO';
+
+    const wrapper = mount(TicketDialog, { props: { projectKey: 'TODO', parentId: 'TODO-9' } });
+
+    const typeLabel = wrapper.findAll('label').find((l) => l.text().startsWith('Type'));
+    if (!typeLabel) throw new Error('Type label/select not found');
+    await typeLabel.get('select').setValue('epic');
+
+    await wrapper.get('input[required]').setValue('An epic sub-task');
+    await wrapper.get('form').trigger('submit');
+    await vi.waitUntil(() => ptahMock.tickets.create.mock.calls.length > 0);
+
+    expect(ptahMock.tickets.create.mock.calls[0][0]).toMatchObject({
+      type: 'epic',
+      parent: 'TODO-9',
+    });
   });
 });
