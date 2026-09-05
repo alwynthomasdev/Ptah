@@ -14,7 +14,7 @@ export function configPath(): string {
 }
 
 export function defaultConfig(): AppConfig {
-  return { dataDir: path.join(os.homedir(), 'Ptah'), theme: 'system' };
+  return { dataDir: path.join(os.homedir(), 'Ptah'), theme: 'system', defaultProjectName: 'To Do' };
 }
 
 export async function loadConfig(): Promise<AppConfig> {
@@ -28,6 +28,10 @@ export async function loadConfig(): Promise<AppConfig> {
         parsed.theme === 'light' || parsed.theme === 'dark' || parsed.theme === 'system'
           ? parsed.theme
           : base.theme,
+      defaultProjectName:
+        typeof parsed.defaultProjectName === 'string' && parsed.defaultProjectName
+          ? parsed.defaultProjectName
+          : base.defaultProjectName,
     };
   } catch {
     return defaultConfig();

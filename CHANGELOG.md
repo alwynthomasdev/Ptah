@@ -6,6 +6,21 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- A "Default project" field in Settings sets the display name of the always-present default project (its key stays `TODO`).
+- Move a ticket to a different project from its edit page: changing the Project field and saving (behind a confirm) mints it a new id in the target project and carries its attachments along.
+- A dedicated Search page (sidebar "Search" link, `/search`): its own text box plus Status/Priority/Labels/Project filters search every ticket in every project, independent of any other view's filters.
+
+### Changed
+- The New Ticket dialog and the ticket edit page now share one always-visible Project dropdown, defaulting to the active project (else the default project, else the first project) but changeable before saving.
+- The default project is now pinned first in every project list/dropdown (sidebar, Settings, ticket forms); on-disk order is unaffected.
+- The default project can no longer be deleted; its Delete button in Settings is disabled with an explanatory tooltip.
+- "+ New ticket" moved from the per-view toolbar (Board/List/Backlog/Archive only) to the always-visible top bar, so it's available from every route.
+- Free-text ticket search moved from the top bar into the per-view toolbar, where it now only shows on List/Backlog/Archive; the toolbar's Project filter chip is hidden while a specific project is active in the sidebar.
+
+### Removed
+- The sidebar quick-add input (`QuickAddTask`) — the New Ticket dialog is now the only ticket-creation path.
+
 ## [0.3.0] - 2026-09-04
 
 ### Added

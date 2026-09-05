@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import type { SortKey } from '@models/Filter';
 import type { Priority, Status } from '@models/Ticket';
 import { PRIORITIES, PRIORITY_LABELS, STATUSES, STATUS_LABELS } from '@models/Ticket';
@@ -7,16 +8,22 @@ import { useTicketsStore } from '../stores/tickets';
 import { useProjectsStore } from '../stores/projects';
 import FilterChip from './FilterChip.vue';
 
-const emit = defineEmits<{ new: [] }>();
-
 const tickets = useTicketsStore();
 const projects = useProjectsStore();
+const route = useRoute();
 
 const SORT_LABELS: Record<SortKey, string> = {
   priority: 'Priority',
   created: 'Created',
   due: 'Due date',
 };
+
+const SEARCH_ROUTES = ['list', 'backlog', 'archive'];
+const showSearch = computed(() => SEARCH_ROUTES.includes(String(route.name)));
+const search = computed({
+  get: () => tickets.filter.text ?? '',
+  set: (value: string) => tickets.setFilter({ text: value }),
+});
 
 const sortKey = computed({
   get: () => tickets.sort.key,
@@ -72,6 +79,13 @@ function clearFilters() {
 
 <template>
   <div class="toolbar">
+    <input
+      v-if="showSearch"
+      v-model="search"
+      class="search"
+      type="search"
+      placeholder="Search tickets…"
+    />
     <FilterChip
       label="Status"
       :options="statusOptions"
@@ -92,6 +106,7 @@ function clearFilters() {
       @update:selected="setLabels"
     />
     <FilterChip
+      v-if="!projects.activeKey"
       label="Project"
       :options="projectOptions"
       :selected="selectedProjects"
@@ -111,11 +126,6 @@ function clearFilters() {
     </button>
 
     <button v-if="hasFilters" class="chip clear" type="button" @click="clearFilters">Clear</button>
-
-    <span class="spacer" />
-    <button class="primary btn-new" :disabled="!projects.items.length" @click="emit('new')">
-      + New ticket
-    </button>
   </div>
 </template>
 
@@ -125,6 +135,11 @@ function clearFilters() {
   align-items: center;
   gap: 10px;
   margin-bottom: 16px;
+}
+.search {
+  width: 220px;
+  padding: 6px 10px;
+  font-size: 12.5px;
 }
 .chip {
   position: relative;
@@ -158,9 +173,5 @@ function clearFilters() {
 }
 .chip.clear {
   color: var(--text-faint);
-}
-.btn-new {
-  font-size: 12.5px;
-  padding: 6px 12px;
 }
 </style>

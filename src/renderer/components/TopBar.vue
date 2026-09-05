@@ -1,21 +1,19 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useTicketsStore } from '../stores/tickets';
+import { useProjectsStore } from '../stores/projects';
 import ThemeToggle from './ThemeToggle.vue';
 
-const tickets = useTicketsStore();
+const emit = defineEmits<{ new: [] }>();
 
-const search = computed({
-  get: () => tickets.filter.text ?? '',
-  set: (value: string) => tickets.setFilter({ text: value }),
-});
+const projects = useProjectsStore();
 </script>
 
 <template>
   <header class="topbar">
     <div class="brand"><span class="mark">P</span> Ptah</div>
     <span class="spacer" />
-    <input v-model="search" class="search" type="search" placeholder="Search tickets…" />
+    <button class="primary btn-new" :disabled="!projects.items.length" @click="emit('new')">
+      + New ticket
+    </button>
     <ThemeToggle />
   </header>
 </template>
@@ -50,9 +48,8 @@ const search = computed({
   font-size: 12px;
   font-weight: 700;
 }
-.search {
-  width: 220px;
-  padding: 6px 10px;
+.btn-new {
   font-size: 12.5px;
+  padding: 6px 12px;
 }
 </style>

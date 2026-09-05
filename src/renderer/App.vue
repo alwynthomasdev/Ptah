@@ -5,7 +5,6 @@ import { useSettingsStore } from './stores/settings';
 import { useProjectsStore } from './stores/projects';
 import { useTicketsStore } from './stores/tickets';
 import ProjectPicker from './components/ProjectPicker.vue';
-import QuickAddTask from './components/QuickAddTask.vue';
 import TicketDialog from './components/TicketDialog.vue';
 import TopBar from './components/TopBar.vue';
 import ViewTabs from './components/ViewTabs.vue';
@@ -62,21 +61,22 @@ async function onProjectCreated() {
 
 <template>
   <div class="shell">
-    <TopBar />
+    <TopBar @new="showNew = true" />
 
     <aside class="sidebar scroll-thin">
-      <QuickAddTask />
-
       <div class="side-section">
         <div class="side-label">PROJECTS</div>
         <ProjectPicker
-          :projects="projects.items"
+          :projects="projects.orderedItems"
           :active="projects.activeKey"
           @change="onProjectChange"
           @created="onProjectCreated"
         />
       </div>
 
+      <RouterLink to="/search" class="side-item" active-class="active">
+        <span class="name">Search</span>
+      </RouterLink>
       <RouterLink to="/settings" class="side-item" active-class="active">
         <span class="name">Settings</span>
       </RouterLink>
@@ -88,7 +88,7 @@ async function onProjectCreated() {
     <main class="main scroll-thin">
       <template v-if="hasChrome">
         <ViewTabs />
-        <Toolbar @new="showNew = true" />
+        <Toolbar />
       </template>
 
       <div v-if="booting" class="muted pad">Loading…</div>

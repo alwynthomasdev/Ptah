@@ -68,6 +68,7 @@ function startEdit() {
     labels: ticket.value.labels.join(', '),
     urls: ticket.value.urls.join('\n'),
     description: ticket.value.description,
+    project: ticket.value.project,
   };
   saveError.value = null;
   mode.value = 'edit';
@@ -94,10 +95,16 @@ function parseUrls(raw: string): string[] {
 
 async function save() {
   if (!ticket.value || !form.value) return;
+  const projectChanged = form.value.project !== ticket.value.project;
+  if (projectChanged) {
+    if (!confirm('Moving this ticket to a different project will assign it a new ticket ID. Continue?')) {
+      return;
+    }
+  }
   saving.value = true;
   saveError.value = null;
   try {
-    const updated = await tickets.update(ticket.value.id, {
+    let updated = await tickets.update(ticket.value.id, {
       title: form.value.title,
       status: form.value.status,
       priority: form.value.priority,
@@ -106,9 +113,15 @@ async function save() {
       urls: parseUrls(form.value.urls),
       description: form.value.description,
     });
+    if (projectChanged) {
+      updated = await tickets.changeProject(updated.id, form.value.project);
+    }
     ticket.value = updated;
     form.value = null;
     mode.value = 'preview';
+    if (projectChanged) {
+      router.replace(`/ticket/${updated.id}`);
+    }
   } catch (e) {
     saveError.value = e instanceof Error ? e.message : String(e);
   } finally {

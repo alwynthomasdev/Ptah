@@ -39,15 +39,47 @@ describe('loadConfig', () => {
     expect(cfg.dataDir).toBe(defaultConfig().dataDir);
   });
 
-  it('keeps a valid persisted config', async () => {
+  it('falls back to "To Do" when defaultProjectName is absent, blank, or non-string', async () => {
+    await fs.writeFile(
+      configFile(),
+      JSON.stringify({ dataDir: '/somewhere/Ptah', theme: 'dark', defaultProjectName: '' }),
+    );
+    expect((await loadConfig()).defaultProjectName).toBe('To Do');
+
+    await fs.writeFile(
+      configFile(),
+      JSON.stringify({ dataDir: '/somewhere/Ptah', theme: 'dark', defaultProjectName: 42 }),
+    );
+    expect((await loadConfig()).defaultProjectName).toBe('To Do');
+
     await fs.writeFile(configFile(), JSON.stringify({ dataDir: '/somewhere/Ptah', theme: 'dark' }));
-    expect(await loadConfig()).toEqual({ dataDir: '/somewhere/Ptah', theme: 'dark' });
+    expect((await loadConfig()).defaultProjectName).toBe('To Do');
+  });
+
+  it('keeps a valid persisted config', async () => {
+    await fs.writeFile(
+      configFile(),
+      JSON.stringify({ dataDir: '/somewhere/Ptah', theme: 'dark', defaultProjectName: 'Inbox' }),
+    );
+    expect(await loadConfig()).toEqual({
+      dataDir: '/somewhere/Ptah',
+      theme: 'dark',
+      defaultProjectName: 'Inbox',
+    });
+  });
+
+  it('loads an old config file with no defaultProjectName key at all', async () => {
+    await fs.writeFile(configFile(), JSON.stringify({ dataDir: '/somewhere/Ptah', theme: 'dark' }));
+    const cfg = await loadConfig();
+    expect(cfg.defaultProjectName).toBe('To Do');
+    expect(cfg.dataDir).toBe('/somewhere/Ptah');
+    expect(cfg.theme).toBe('dark');
   });
 });
 
 describe('saveConfig', () => {
   it('round-trips through loadConfig and writes a trailing newline', async () => {
-    const cfg = { dataDir: '/data/Ptah', theme: 'light' as const };
+    const cfg = { dataDir: '/data/Ptah', theme: 'light' as const, defaultProjectName: 'To Do' };
     const returned = await saveConfig(cfg);
     expect(returned).toEqual(cfg);
     expect(await loadConfig()).toEqual(cfg);
@@ -56,7 +88,7 @@ describe('saveConfig', () => {
 
   it('creates the userData directory if it is missing', async () => {
     userData = path.join(userData, 'nested', 'deeper');
-    const cfg = { dataDir: '/data/Ptah', theme: 'system' as const };
+    const cfg = { dataDir: '/data/Ptah', theme: 'system' as const, defaultProjectName: 'To Do' };
     await saveConfig(cfg);
     expect(await loadConfig()).toEqual(cfg);
   });

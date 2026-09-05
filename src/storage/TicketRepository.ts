@@ -57,6 +57,19 @@ export class TicketRepository {
     return { ...ticket, attachments: await this.readAttachments(ticket.project, ticket.id) };
   }
 
+  /** Move a ticket (and its attachments) to a new id/project. Writes the new
+   *  file+frontmatter and moves the attachments dir, then removes the old file. */
+  async move(ticket: Ticket, newId: string, newProject: string): Promise<Ticket> {
+    const moved: Ticket = { ...ticket, id: newId, project: newProject };
+    await this.store.writeText(this.store.ticketFile(newProject, newId), ticketToMarkdown(moved));
+    const oldAttachments = this.store.attachmentsDir(ticket.project, ticket.id);
+    if (await this.store.exists(oldAttachments)) {
+      await this.store.move(oldAttachments, this.store.attachmentsDir(newProject, newId));
+    }
+    await this.store.remove(this.store.ticketFile(ticket.project, ticket.id));
+    return { ...moved, attachments: await this.readAttachments(newProject, newId) };
+  }
+
   /** Hard-delete the ticket file and its attachments folder. */
   async hardDelete(id: string): Promise<void> {
     const { project } = parseId(id);

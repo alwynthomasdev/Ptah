@@ -1,3 +1,9 @@
+// @vitest-environment jsdom
+// Explicit per-file pragma: on some Windows setups, vitest.config.ts's
+// `environmentMatchGlobs` silently fails to select jsdom for test/renderer/**
+// (a drive-letter casing mismatch inside vitest/pathe, not something fixable
+// from this repo's config — see tester agent notes). The pragma is checked
+// before environmentMatchGlobs, so it works regardless.
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import MarkdownEditor from '@renderer/components/MarkdownEditor.vue';

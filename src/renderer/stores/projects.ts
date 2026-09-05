@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import type { NewProjectInput, Project } from '@models/Project';
+import { DEFAULT_PROJECT_KEY } from '@models/Project';
 import { call, ptah } from '../api';
 
 interface State {
@@ -13,6 +14,14 @@ export const useProjectsStore = defineStore('projects', {
   getters: {
     active: (s): Project | null => s.items.find((p) => p.key === s.activeKey) ?? null,
     byKey: (s) => (key: string) => s.items.find((p) => p.key === key) ?? null,
+    /** `items` with the default project pinned first (if present), rest left alphabetical. */
+    orderedItems: (s): Project[] => {
+      const items = s.items;
+      const idx = items.findIndex((p) => p.key === DEFAULT_PROJECT_KEY);
+      if (idx <= 0) return items;
+      const rest = items.filter((p) => p.key !== DEFAULT_PROJECT_KEY);
+      return [items[idx], ...rest];
+    },
   },
   actions: {
     async load() {

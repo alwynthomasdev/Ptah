@@ -10,6 +10,7 @@ const api: PtahApi = {
     get: () => ipcRenderer.invoke(IPC.configGet),
     setTheme: (theme) => ipcRenderer.invoke(IPC.configSetTheme, theme),
     setDataDir: (dir) => ipcRenderer.invoke(IPC.configSetDataDir, dir),
+    setDefaultProjectName: (name) => ipcRenderer.invoke(IPC.configSetDefaultProjectName, name),
     pickDataDir: () => ipcRenderer.invoke(IPC.configPickDataDir),
   },
   projects: {
@@ -23,6 +24,7 @@ const api: PtahApi = {
     get: (id) => ipcRenderer.invoke(IPC.ticketsGet, id),
     create: (input) => ipcRenderer.invoke(IPC.ticketsCreate, input),
     update: (id, patch) => ipcRenderer.invoke(IPC.ticketsUpdate, id, patch),
+    changeProject: (id, projectKey) => ipcRenderer.invoke(IPC.ticketsChangeProject, id, projectKey),
     delete: (id) => ipcRenderer.invoke(IPC.ticketsDelete, id),
   },
   bin: {

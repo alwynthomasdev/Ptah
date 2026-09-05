@@ -44,6 +44,44 @@ describe('ProjectService + TicketService', () => {
   });
 });
 
+describe('TicketService.changeProject', () => {
+  beforeEach(async () => {
+    await ctx.projects.create({ key: 'PTAH', name: 'Ptah' });
+    await ctx.projects.create({ key: 'ACME', name: 'Acme' });
+  });
+
+  it('mints a new id in the target project and the old id no longer resolves', async () => {
+    const t = await ctx.tickets.create({ title: 'A', project: 'PTAH' });
+    const moved = await ctx.tickets.changeProject(t.id, 'ACME');
+
+    expect(moved.id.startsWith('ACME-')).toBe(true);
+    expect(moved.id).not.toBe(t.id);
+    expect(moved.project).toBe('ACME');
+
+    await expect(ctx.tickets.get(t.id)).rejects.toThrow();
+    expect((await ctx.tickets.get(moved.id)).id).toBe(moved.id);
+  });
+
+  it('rejects a move into a nonexistent project, leaving the ticket unchanged', async () => {
+    const t = await ctx.tickets.create({ title: 'A', project: 'PTAH' });
+
+    await expect(ctx.tickets.changeProject(t.id, 'NOPE')).rejects.toThrow();
+
+    const reloaded = await ctx.tickets.get(t.id);
+    expect(reloaded.id).toBe(t.id);
+    expect(reloaded.project).toBe('PTAH');
+  });
+
+  it('is a no-op when moving to the same project', async () => {
+    const t = await ctx.tickets.create({ title: 'A', project: 'PTAH' });
+    const result = await ctx.tickets.changeProject(t.id, 'PTAH');
+
+    expect(result.id).toBe(t.id);
+    expect(result.project).toBe('PTAH');
+    expect((await ctx.tickets.get(t.id)).id).toBe(t.id);
+  });
+});
+
 describe('recycle bin flow', () => {
   beforeEach(async () => {
     await ctx.projects.create({ key: 'PTAH', name: 'Ptah' });
@@ -114,5 +152,35 @@ describe('default project seeding', () => {
     await ctx.init();
 
     expect((await ctx.projects.get(DEFAULT_PROJECT_KEY)).counter).toBe(2);
+  });
+
+  it('seeds the TODO project with a custom name when init() is given one', async () => {
+    const t = await makeTmpDir();
+    const fresh = new AppContext(t.dir);
+    await fresh.init('My Tasks');
+
+    const project = await fresh.projects.get(DEFAULT_PROJECT_KEY);
+    expect(project.key).toBe(DEFAULT_PROJECT_KEY);
+    expect(project.name).toBe('My Tasks');
+
+    await t.cleanup();
+  });
+
+  it('defaults the seeded name to "To Do" when init() is called with no argument', async () => {
+    const t = await makeTmpDir();
+    const fresh = new AppContext(t.dir);
+    await fresh.init();
+
+    const project = await fresh.projects.get(DEFAULT_PROJECT_KEY);
+    expect(project.name).toBe('To Do');
+
+    await t.cleanup();
+  });
+
+  it('refuses to delete the default project', async () => {
+    await expect(ctx.projects.delete(DEFAULT_PROJECT_KEY)).rejects.toThrow();
+    // ProjectService has no `exists`; a successful `get` after the rejected
+    // delete confirms the project is still there.
+    expect((await ctx.projects.get(DEFAULT_PROJECT_KEY)).key).toBe(DEFAULT_PROJECT_KEY);
   });
 });

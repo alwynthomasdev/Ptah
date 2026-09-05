@@ -9,9 +9,11 @@
 import { PRIORITIES, PRIORITY_LABELS, STATUSES, STATUS_LABELS } from '@models/Ticket';
 import type { Ticket } from '@models/Ticket';
 import type { TicketFormModel } from '../lib/ticketForm';
+import { useProjectsStore } from '../stores/projects';
 import MarkdownEditor from './MarkdownEditor.vue';
 
 const model = defineModel<TicketFormModel>({ required: true });
+const projects = useProjectsStore();
 
 defineProps<{
   project?: string | null;
@@ -43,6 +45,12 @@ const emit = defineEmits<{ attached: [ticket: Ticket] }>();
       <label
         >Due date
         <input v-model="model.due" type="date" />
+      </label>
+      <label
+        >Project
+        <select v-model="model.project">
+          <option v-for="p in projects.orderedItems" :key="p.key" :value="p.key">{{ p.name }}</option>
+        </select>
       </label>
     </div>
 
@@ -88,7 +96,7 @@ label textarea {
 }
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
 </style>

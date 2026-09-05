@@ -1,3 +1,9 @@
+// @vitest-environment jsdom
+// Explicit per-file pragma: on some Windows setups, vitest.config.ts's
+// `environmentMatchGlobs` silently fails to select jsdom for test/renderer/**
+// (a drive-letter casing mismatch inside vitest/pathe, not something fixable
+// from this repo's config — see tester agent notes). The pragma is checked
+// before environmentMatchGlobs, so it works regardless.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 
@@ -49,15 +55,20 @@ function fireOsThemeChange() {
 }
 window.matchMedia = vi.fn(() => mql) as unknown as typeof window.matchMedia;
 
-let cfg: { dataDir: string; theme: 'light' | 'dark' | 'system' } = {
+let cfg: { dataDir: string; theme: 'light' | 'dark' | 'system'; defaultProjectName: string } = {
   dataDir: '/data/Ptah',
   theme: 'system',
+  defaultProjectName: 'To Do',
 };
 const ptahMock = {
   config: {
     get: vi.fn(async () => ({ ok: true as const, value: { ...cfg } })),
     setTheme: vi.fn(async (theme: 'light' | 'dark' | 'system') => {
       cfg = { ...cfg, theme };
+      return { ok: true as const, value: { ...cfg } };
+    }),
+    setDefaultProjectName: vi.fn(async (name: string) => {
+      cfg = { ...cfg, defaultProjectName: name };
       return { ok: true as const, value: { ...cfg } };
     }),
     pickDataDir: vi.fn(async () => ({ ok: true as const, value: null })),
@@ -75,9 +86,10 @@ beforeEach(() => {
   localStorage.clear();
   document.documentElement.removeAttribute('data-theme');
   mql.matches = false;
-  cfg = { dataDir: '/data/Ptah', theme: 'system' };
+  cfg = { dataDir: '/data/Ptah', theme: 'system', defaultProjectName: 'To Do' };
   ptahMock.config.get.mockClear();
   ptahMock.config.setTheme.mockClear();
+  ptahMock.config.setDefaultProjectName.mockClear();
 });
 
 describe('resolveTheme', () => {
@@ -149,5 +161,21 @@ describe('settings store — theme lifecycle', () => {
     mql.matches = true;
     fireOsThemeChange();
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+  });
+});
+
+describe('settings store — default project name', () => {
+  it('load() populates defaultProjectName from config', async () => {
+    cfg.defaultProjectName = 'Inbox';
+    const store = useSettingsStore();
+    await store.load();
+    expect(store.defaultProjectName).toBe('Inbox');
+  });
+
+  it('setDefaultProjectName() calls the IPC mock and updates store state', async () => {
+    const store = useSettingsStore();
+    await store.setDefaultProjectName('Backlog');
+    expect(ptahMock.config.setDefaultProjectName).toHaveBeenCalledWith('Backlog');
+    expect(store.defaultProjectName).toBe('Backlog');
   });
 });

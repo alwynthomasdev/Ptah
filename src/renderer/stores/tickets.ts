@@ -100,6 +100,12 @@ export const useTicketsStore = defineStore('tickets', {
       if (i >= 0) this.items[i] = updated;
       return updated;
     },
+    async changeProject(id: string, projectKey: string) {
+      const updated = await call(ptah.tickets.changeProject(id, projectKey));
+      this.items = this.items.filter((t) => t.id !== id);
+      this.items.push(updated);
+      return updated;
+    },
     async remove(id: string) {
       await call(ptah.tickets.delete(id));
       this.items = this.items.filter((t) => t.id !== id);

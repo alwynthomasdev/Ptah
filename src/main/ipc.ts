@@ -20,7 +20,7 @@ export async function registerIpc(): Promise<void> {
   let config: AppConfig = await loadConfig();
   setDataDir(config.dataDir);
   let context = new AppContext(config.dataDir);
-  await context.init();
+  await context.init(config.defaultProjectName);
 
   const h = <T>(channel: string, fn: (...args: unknown[]) => Promise<T> | T) =>
     ipcMain.handle(channel, (_evt, ...args) => tryResult(() => fn(...args)));
@@ -35,7 +35,7 @@ export async function registerIpc(): Promise<void> {
     config = await saveConfig({ ...config, dataDir: dir });
     setDataDir(config.dataDir);
     context = new AppContext(config.dataDir);
-    await context.init();
+    await context.init(config.defaultProjectName);
     // Defer so this IPC reply is flushed before the page tears down.
     setTimeout(() => {
       for (const w of BrowserWindow.getAllWindows()) w.reload();
@@ -53,6 +53,13 @@ export async function registerIpc(): Promise<void> {
   });
 
   h(IPC.configSetDataDir, async (dir) => applyDataDir(String(dir)));
+
+  h(IPC.configSetDefaultProjectName, async (name) => {
+    const trimmed = String(name).trim();
+    if (!trimmed) throw new Error('Default project name must not be empty.');
+    config = await saveConfig({ ...config, defaultProjectName: trimmed });
+    return config;
+  });
 
   h(IPC.configPickDataDir, async () => {
     const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
@@ -92,6 +99,9 @@ export async function registerIpc(): Promise<void> {
   h(IPC.ticketsGet, (id) => context.tickets.get(String(id)));
   h(IPC.ticketsCreate, (input) => context.tickets.create(input as never));
   h(IPC.ticketsUpdate, (id, patch) => context.tickets.update(String(id), patch as never));
+  h(IPC.ticketsChangeProject, (id, projectKey) =>
+    context.tickets.changeProject(String(id), String(projectKey)),
+  );
   h(IPC.ticketsDelete, (id) => context.tickets.delete(String(id)));
 
   // ---- system ------------------------------------------------------

@@ -32,14 +32,17 @@ export class ProjectService {
    * bin for this — the spec calls for a hard delete.
    */
   async delete(key: string): Promise<void> {
+    if (key === DEFAULT_PROJECT_KEY) {
+      throw new Error('The default project cannot be deleted.');
+    }
     if (!(await this.projects.exists(key))) {
       throw new Error(`Project "${key}" not found.`);
     }
     await this.projects.delete(key);
   }
 
-  async ensureDefaultProject(): Promise<void> {
+  async ensureDefaultProject(name: string = 'To Do'): Promise<void> {
     if (await this.projects.exists(DEFAULT_PROJECT_KEY)) return;
-    await this.projects.create(createProject({ key: DEFAULT_PROJECT_KEY, name: 'To Do' }));
+    await this.projects.create(createProject({ key: DEFAULT_PROJECT_KEY, name }));
   }
 }

@@ -41,6 +41,19 @@ export class TicketService {
     return this.tickets.save(applyPatch(current, patch));
   }
 
+  /** Move a ticket to a different project, minting it a new id there. */
+  async changeProject(id: string, targetProjectKey: string): Promise<Ticket> {
+    const current = await this.tickets.get(id);
+    const target = targetProjectKey.trim().toUpperCase();
+    if (!(await this.projects.exists(target))) {
+      throw new Error(`Project "${target}" does not exist.`);
+    }
+    if (target === current.project) return current; // no-op, allowed
+    const n = await this.projects.bumpCounter(target);
+    const newId = formatId(target, n);
+    return this.tickets.move(current, newId, target);
+  }
+
   /** Soft-delete: move the ticket to the recycle bin. */
   async delete(id: string): Promise<void> {
     const ticket = await this.tickets.get(id);

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import type { Ticket } from '@models/Ticket';
+import { DEFAULT_PROJECT_KEY } from '@models/Project';
 import { fromDateInput } from '@shared/dates';
 import { useTicketsStore } from '../stores/tickets';
 import { useProjectsStore } from '../stores/projects';
@@ -17,11 +18,6 @@ const projects = useProjectsStore();
 const error = ref<string | null>(null);
 const saving = ref(false);
 
-/** Chosen when the dialog is opened without a fixed project ("All projects"). */
-const selectedProject = ref<string>(projects.activeKey ?? projects.items[0]?.key ?? '');
-
-const project = computed(() => props.projectKey ?? selectedProject.value);
-
 const form = reactive<TicketFormModel>({
   title: '',
   status: 'backlog',
@@ -30,10 +26,14 @@ const form = reactive<TicketFormModel>({
   labels: '',
   urls: '',
   description: '',
+  project:
+    props.projectKey ??
+    projects.activeKey ??
+    (projects.byKey(DEFAULT_PROJECT_KEY) ? DEFAULT_PROJECT_KEY : (projects.items[0]?.key ?? '')),
 });
 
 const heading = computed(() =>
-  project.value ? `New ticket in ${project.value}` : 'New ticket',
+  form.project ? `New ticket in ${form.project}` : 'New ticket',
 );
 
 function parseLabels(): string[] {
@@ -54,10 +54,10 @@ async function submit() {
   error.value = null;
   saving.value = true;
   try {
-    if (!project.value) throw new Error('Pick a project first.');
+    if (!form.project) throw new Error('Pick a project first.');
     const result = await tickets.create({
       title: form.title,
-      project: project.value,
+      project: form.project,
       status: form.status,
       priority: form.priority,
       due: fromDateInput(form.due),
@@ -84,14 +84,7 @@ async function submit() {
       </header>
 
       <form @submit.prevent="submit">
-        <label v-if="!props.projectKey"
-          >Project
-          <select v-model="selectedProject" required>
-            <option v-for="p in projects.items" :key="p.key" :value="p.key">{{ p.name }}</option>
-          </select>
-        </label>
-
-        <TicketForm v-model="form" :project="project" />
+        <TicketForm v-model="form" :project="form.project" />
 
         <p v-if="error" class="err">{{ error }}</p>
 

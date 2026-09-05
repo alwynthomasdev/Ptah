@@ -8,6 +8,7 @@ interface State {
   dataDir: string;
   theme: Theme;
   loaded: boolean;
+  defaultProjectName: string;
 }
 
 /** localStorage key the pre-paint boot script (public/theme-boot.js) reads. */
@@ -41,12 +42,13 @@ if (typeof window !== 'undefined') {
 }
 
 export const useSettingsStore = defineStore('settings', {
-  state: (): State => ({ dataDir: '', theme: 'system', loaded: false }),
+  state: (): State => ({ dataDir: '', theme: 'system', loaded: false, defaultProjectName: '' }),
   actions: {
     async load() {
       const cfg = await call(ptah.config.get());
       this.dataDir = cfg.dataDir;
       this.theme = cfg.theme;
+      this.defaultProjectName = cfg.defaultProjectName;
       this.loaded = true;
       applyTheme(this.theme);
     },
@@ -54,6 +56,10 @@ export const useSettingsStore = defineStore('settings', {
       const cfg = await call(ptah.config.setTheme(theme));
       this.theme = cfg.theme;
       applyTheme(this.theme);
+    },
+    async setDefaultProjectName(name: string) {
+      const cfg = await call(ptah.config.setDefaultProjectName(name));
+      this.defaultProjectName = cfg.defaultProjectName;
     },
     async pickDataDir() {
       const cfg = await call(ptah.config.pickDataDir());

@@ -6,6 +6,7 @@ import type { Result } from './result';
 export interface AppConfig {
   dataDir: string;
   theme: 'light' | 'dark' | 'system';
+  defaultProjectName: string;
 }
 
 /** Info about an available update, surfaced from GitHub Releases via `electron-updater`. */
@@ -33,6 +34,7 @@ export const IPC = {
   configGet: 'config:get',
   configSetTheme: 'config:setTheme',
   configSetDataDir: 'config:setDataDir',
+  configSetDefaultProjectName: 'config:setDefaultProjectName',
   configPickDataDir: 'config:pickDataDir',
 
   projectsList: 'projects:list',
@@ -44,6 +46,7 @@ export const IPC = {
   ticketsGet: 'tickets:get',
   ticketsCreate: 'tickets:create',
   ticketsUpdate: 'tickets:update',
+  ticketsChangeProject: 'tickets:changeProject',
   ticketsDelete: 'tickets:delete',
 
   binList: 'bin:list',
@@ -80,6 +83,7 @@ export interface PtahApi {
     get(): Promise<Result<AppConfig>>;
     setTheme(theme: AppConfig['theme']): Promise<Result<AppConfig>>;
     setDataDir(dir: string): Promise<Result<AppConfig>>;
+    setDefaultProjectName(name: string): Promise<Result<AppConfig>>;
     pickDataDir(): Promise<Result<AppConfig | null>>;
   };
   projects: {
@@ -93,6 +97,8 @@ export interface PtahApi {
     get(id: string): Promise<Result<Ticket>>;
     create(input: NewTicketInput): Promise<Result<Ticket>>;
     update(id: string, patch: TicketPatch): Promise<Result<Ticket>>;
+    /** Move a ticket to a different project, minting it a new id. */
+    changeProject(id: string, targetProjectKey: string): Promise<Result<Ticket>>;
     delete(id: string): Promise<Result<void>>;
   };
   bin: {

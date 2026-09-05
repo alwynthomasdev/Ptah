@@ -28,9 +28,9 @@ export class AppContext {
   }
 
   /** Create the base folder layout if this is a fresh data directory. */
-  async init(): Promise<void> {
+  async init(defaultProjectName: string = 'To Do'): Promise<void> {
     await this.store.ensureDir(this.store.projectsDir());
-    await this.projects.ensureDefaultProject();
+    await this.projects.ensureDefaultProject(defaultProjectName);
   }
 
   get dataDir(): string {

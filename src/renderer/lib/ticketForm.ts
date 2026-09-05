@@ -15,4 +15,5 @@ export interface TicketFormModel {
   labels: string;
   urls: string;
   description: string;
+  project: string;
 }

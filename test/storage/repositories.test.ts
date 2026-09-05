@@ -89,4 +89,58 @@ describe('TicketRepository', () => {
     await tickets.hardDelete('PTAH-1');
     expect(await tickets.exists('PTAH-1')).toBe(false);
   });
+
+  describe('move', () => {
+    beforeEach(async () => {
+      await projects.create(createProject({ key: 'ACME', name: 'Acme' }));
+    });
+
+    it('moves the ticket file and attachments to the new project/id', async () => {
+      const t = await tickets.save(createTicket('PTAH-1', { title: 'A', project: 'PTAH' }));
+      const adir = store.attachmentsDir('PTAH', 'PTAH-1');
+      await fs.mkdir(adir, { recursive: true });
+      await fs.writeFile(path.join(adir, 'diagram.png'), 'x');
+      const withAttachment = await tickets.get('PTAH-1');
+      expect(withAttachment.attachments).toEqual(['diagram.png']);
+
+      const moved = await tickets.move(withAttachment, 'ACME-1', 'ACME');
+
+      expect(moved.id).toBe('ACME-1');
+      expect(moved.project).toBe('ACME');
+      expect(moved.attachments).toEqual(['diagram.png']);
+
+      // old files gone
+      expect(await store.exists(store.ticketFile('PTAH', 'PTAH-1'))).toBe(false);
+      expect(await store.exists(store.attachmentsDir('PTAH', 'PTAH-1'))).toBe(false);
+
+      // new files present
+      expect(await store.exists(store.ticketFile('ACME', 'ACME-1'))).toBe(true);
+      const back = await tickets.get('ACME-1');
+      expect(back.id).toBe('ACME-1');
+      expect(back.project).toBe('ACME');
+      expect(back.title).toBe('A');
+      expect(back.attachments).toEqual(['diagram.png']);
+
+      const copied = await fs.readFile(
+        path.join(store.attachmentsDir('ACME', 'ACME-1'), 'diagram.png'),
+        'utf8',
+      );
+      expect(copied).toBe('x');
+
+      void t;
+    });
+
+    it('moves a ticket with no attachments folder without error', async () => {
+      const t = await tickets.save(createTicket('PTAH-1', { title: 'B', project: 'PTAH' }));
+      const moved = await tickets.move(t, 'ACME-1', 'ACME');
+
+      expect(moved.attachments).toEqual([]);
+      expect(await store.exists(store.ticketFile('PTAH', 'PTAH-1'))).toBe(false);
+      expect(await store.exists(store.attachmentsDir('ACME', 'ACME-1'))).toBe(false);
+
+      const back = await tickets.get('ACME-1');
+      expect(back.id).toBe('ACME-1');
+      expect(back.project).toBe('ACME');
+    });
+  });
 });

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import type { ClaudeDetectResult, ClaudeTarget, UpdateInfo } from '@shared/ipc';
+import { DEFAULT_PROJECT_KEY } from '@models/Project';
 import { useSettingsStore } from '../stores/settings';
 import { useProjectsStore } from '../stores/projects';
 import { call, ptah } from '../api';
@@ -20,6 +21,30 @@ const ioMsg = ref<string | null>(null);
 const ioErr = ref<string | null>(null);
 
 const projectsError = ref<string | null>(null);
+
+const defaultProjectNameInput = ref(settings.defaultProjectName);
+const defaultProjectNameBusy = ref(false);
+const defaultProjectNameErr = ref<string | null>(null);
+
+async function saveDefaultProjectName() {
+  const name = defaultProjectNameInput.value.trim();
+  if (!name) return;
+  defaultProjectNameBusy.value = true;
+  defaultProjectNameErr.value = null;
+  try {
+    await settings.setDefaultProjectName(name);
+    defaultProjectNameInput.value = settings.defaultProjectName;
+    if (projects.byKey(DEFAULT_PROJECT_KEY)) {
+      await projects.rename(DEFAULT_PROJECT_KEY, name);
+    } else {
+      await projects.load();
+    }
+  } catch (e) {
+    defaultProjectNameErr.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    defaultProjectNameBusy.value = false;
+  }
+}
 
 async function deleteProject(p: { key: string; name: string }) {
   if (
@@ -240,15 +265,42 @@ async function installUpdate() {
     </div>
 
     <div class="card block">
+      <h3>Default project</h3>
+      <p class="muted small">
+        Every Ptah install starts with one project (key <code>TODO</code>). Its name is yours to
+        set.
+      </p>
+      <div class="io-row">
+        <label class="io-field">
+          Name
+          <input v-model="defaultProjectNameInput" type="text" />
+        </label>
+        <button
+          :disabled="defaultProjectNameBusy || !defaultProjectNameInput.trim()"
+          @click="saveDefaultProjectName"
+        >
+          {{ defaultProjectNameBusy ? 'Saving…' : 'Save' }}
+        </button>
+      </div>
+      <p v-if="defaultProjectNameErr" class="err small">{{ defaultProjectNameErr }}</p>
+    </div>
+
+    <div class="card block">
       <h3>Projects</h3>
 
       <div v-if="projects.items.length === 0" class="muted small">No projects yet.</div>
       <ul v-else class="project-list">
-        <li v-for="p in projects.items" :key="p.key">
+        <li v-for="p in projects.orderedItems" :key="p.key">
           <span class="proj-name">{{ p.name }}</span>
           <span class="proj-key mono">{{ p.key }}</span>
           <span class="spacer" />
-          <button type="button" class="ghost small danger" @click="deleteProject(p)">
+          <button
+            type="button"
+            class="ghost small danger"
+            :disabled="p.key === DEFAULT_PROJECT_KEY"
+            :title="p.key === DEFAULT_PROJECT_KEY ? 'The default project cannot be deleted.' : undefined"
+            @click="deleteProject(p)"
+          >
             Delete
           </button>
         </li>
@@ -267,7 +319,7 @@ async function installUpdate() {
           <label class="io-field">
             Export project
             <select v-model="exportKey">
-              <option v-for="p in projects.items" :key="p.key" :value="p.key">{{ p.name }}</option>
+              <option v-for="p in projects.orderedItems" :key="p.key" :value="p.key">{{ p.name }}</option>
             </select>
           </label>
           <label class="io-check">
@@ -281,7 +333,7 @@ async function installUpdate() {
           <label class="io-field">
             Import into
             <select v-model="importKey">
-              <option v-for="p in projects.items" :key="p.key" :value="p.key">{{ p.name }}</option>
+              <option v-for="p in projects.orderedItems" :key="p.key" :value="p.key">{{ p.name }}</option>
             </select>
           </label>
           <button :disabled="ioBusy || !importKey" @click="importTickets">Import tickets…</button>
