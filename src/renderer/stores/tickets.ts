@@ -3,6 +3,7 @@ import type { NewTicketInput, Status, Ticket, TicketPatch } from '@models/Ticket
 import { STATUSES } from '@models/Ticket';
 import type { TicketFilter, TicketSort } from '@models/Filter';
 import { filterAndSort } from '@models/Filter';
+import { isDueTodayOrEarlier, isOverdue } from '@shared/dates';
 import { call, ptah } from '../api';
 
 export type ListScope = 'working' | 'backlog' | 'archive' | 'all';
@@ -72,6 +73,23 @@ export const useTicketsStore = defineStore('tickets', {
         for (const l of t.labels) seen.add(l);
       }
       return [...seen].sort((a, b) => a.localeCompare(b));
+    },
+    /**
+     * The "Today" set: open work (not done/archived) due today or earlier,
+     * across every project, oldest first so overdue rows surface at the top.
+     * Deliberately ignores the shared project filter.
+     */
+    dueToday(s): Ticket[] {
+      return s.items
+        .filter(
+          (t) =>
+            t.status !== 'done' && t.status !== 'archive' && isDueTodayOrEarlier(t.due),
+        )
+        .sort((a, b) => (a.due ?? '').localeCompare(b.due ?? ''));
+    },
+    /** How many of `dueToday` are genuinely overdue (due before today). */
+    dueTodayOverdueCount(): number {
+      return this.dueToday.filter((t) => isOverdue(t.due)).length;
     },
     /** Scope filter (as TicketBrowser did), then the store's filter + sort. */
     scopedList() {

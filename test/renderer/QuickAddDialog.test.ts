@@ -9,6 +9,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 import type { Project } from '@models/Project';
 import type { Ticket } from '@models/Ticket';
+import { todayIso } from '@shared/dates';
 
 function makeProject(key: string, name: string): Project {
   return { key, name, counter: 0, created: new Date().toISOString() };
@@ -102,6 +103,7 @@ describe('QuickAddDialog — rapid add loop', () => {
     expect(ptahMock.tickets.create.mock.calls[0][0]).toEqual({
       title: 'first idea',
       project: 'TODO',
+      due: todayIso(),
     });
 
     // Still mounted, no close emitted, title cleared, project kept, id shown.
@@ -167,5 +169,42 @@ describe('QuickAddDialog — closing', () => {
     const wrapper = mount(QuickAddDialog, { props: { projectKey: 'TODO' } });
     await wrapper.get('.backdrop').trigger('keydown.esc');
     expect(wrapper.emitted('close')).toHaveLength(1);
+  });
+});
+
+describe('QuickAddDialog — embedded mode', () => {
+  it('renders inline without the modal backdrop', () => {
+    seedProjects('TODO', ['TODO', 'To Do']);
+    const wrapper = mount(QuickAddDialog, { props: { projectKey: 'TODO', embedded: true } });
+    expect(wrapper.find('.backdrop').exists()).toBe(false);
+    expect(wrapper.find('.embedded').exists()).toBe(true);
+    expect(wrapper.find('.dialog.flush').exists()).toBe(true);
+  });
+
+  it('still emits close from the ✕ button', async () => {
+    seedProjects('TODO', ['TODO', 'To Do']);
+    const wrapper = mount(QuickAddDialog, { props: { projectKey: 'TODO', embedded: true } });
+    await wrapper.get('header button').trigger('click');
+    expect(wrapper.emitted('close')).toHaveLength(1);
+  });
+
+  it('still emits close on Escape', async () => {
+    seedProjects('TODO', ['TODO', 'To Do']);
+    const wrapper = mount(QuickAddDialog, { props: { projectKey: 'TODO', embedded: true } });
+    await wrapper.get('.embedded').trigger('keydown.esc');
+    expect(wrapper.emitted('close')).toHaveLength(1);
+  });
+
+  it('still creates a ticket and stays open (rapid add unchanged)', async () => {
+    seedProjects('TODO', ['TODO', 'To Do']);
+    const wrapper = mount(QuickAddDialog, { props: { projectKey: 'TODO', embedded: true } });
+
+    await wrapper.get('input[required]').setValue('embedded idea');
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    expect(ptahMock.tickets.create).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted('close')).toBeUndefined();
+    expect(wrapper.text()).toContain('Added TODO-1');
   });
 });

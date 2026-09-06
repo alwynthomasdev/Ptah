@@ -58,6 +58,17 @@ const api: PtahApi = {
     connect: (target) => ipcRenderer.invoke(IPC.claudeConnect, target),
     disconnect: (target) => ipcRenderer.invoke(IPC.claudeDisconnect, target),
   },
+  window: {
+    openQuickAdd: (projectKey) => ipcRenderer.invoke(IPC.windowOpenQuickAdd, projectKey),
+    closeQuickAdd: () => ipcRenderer.invoke(IPC.windowCloseQuickAdd),
+  },
+  events: {
+    onTicketsChanged: (listener) => {
+      const wrapped = () => listener();
+      ipcRenderer.on(IPC.ticketsChanged, wrapped);
+      return () => ipcRenderer.removeListener(IPC.ticketsChanged, wrapped);
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld('ptah', api);

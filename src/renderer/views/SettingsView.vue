@@ -108,6 +108,15 @@ async function changeDataDir() {
   }
 }
 
+// --- Claude / MCP integration -------------------------------------------------
+// TEMPORARILY HIDDEN: the Claude integration (MCP server registration) isn't
+// working reliably yet, so the "Claude integration" card is hidden from the UI
+// and the status probe is not run on mount. All the wiring below is left intact.
+// To bring it back: flip `showClaudeIntegration` to `true` and restore the
+// `refreshClaudeStatus()` call in `onMounted`. Backend plumbing (ptah.claude.*,
+// src/mcp/**) is untouched.
+const showClaudeIntegration = false;
+
 const claudeStatus = ref<ClaudeDetectResult | null>(null);
 const claudeBusy = ref<Record<ClaudeTarget, boolean>>({ code: false, desktop: false });
 const claudeErr = ref<Record<ClaudeTarget, string | null>>({ code: null, desktop: null });
@@ -142,7 +151,8 @@ async function toggleClaude(target: ClaudeTarget) {
 }
 
 onMounted(() => {
-  refreshClaudeStatus();
+  // Claude / MCP integration hidden for now — see note above. Re-enable with:
+  // refreshClaudeStatus();
 });
 
 const checking = ref(false);
@@ -224,7 +234,12 @@ async function installUpdate() {
       </p>
     </div>
 
-    <div class="card block">
+    <!--
+      Claude / MCP integration — TEMPORARILY HIDDEN (integration not working yet).
+      This card is fully wired but hidden behind `showClaudeIntegration`; set that
+      flag to `true` in <script setup> to show it again.
+    -->
+    <div v-if="showClaudeIntegration" class="card block">
       <h3>Claude integration</h3>
 
       <ul v-if="claudeStatus" class="claude-list">

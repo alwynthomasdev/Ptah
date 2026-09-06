@@ -6,6 +6,25 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-09-06
+
+Adds a "Today" view, moves Quick Add into its own always-on-top window, lets you
+change a ticket's priority straight from the list, checks for updates on launch,
+and ships a downloadable skill documenting Ptah's on-disk ticket format.
+
+### Added
+- **Today view**: a new sidebar link (pinned above Projects) listing every open ticket — not `done` or `archived` — that is due today or earlier, across all projects, oldest first, with a count of the genuinely overdue. It deliberately ignores the sidebar project filter. The sidebar badge shows the count and turns warning-coloured when anything is overdue.
+- **Standalone Quick Add window**: the top-bar **Quick add** button and the global **Ctrl/Cmd+N** shortcut now open a small, always-on-top capture window parked in the bottom-right corner instead of an in-app modal, so tickets can be captured while Ptah is in the background. It's a singleton, stays open for rapid entry, and the main window's lists refresh (via a new `tickets:changed` broadcast) as tickets are created. New `window:openQuickAdd` / `window:closeQuickAdd` IPC and a `ptah.window` / `ptah.events` surface.
+- **Inline priority editing**: the Priority cell in the List, Backlog, Archive, and Search tables is now a dropdown that changes a ticket's priority in place, without opening it.
+- **Launch update check**: packaged Windows and Linux builds now check for a newer GitHub release at startup and show an "Update available" dialog with release notes and an Install-now action (download, then restart to apply). macOS is still excluded (unsigned builds). This builds on the `ptah.updates.*` IPC added in 0.2.0.
+- **Ptah Agent Skill** (`.claude/skills/ptah/SKILL.md`): a downloadable skill documenting Ptah's on-disk ticket format for use *outside* the app — generating importable `.md` / `.zip` files, reading a `~/Ptah` folder, and mapping tickets to and from Jira and other trackers, with no app or MCP server required. Linked from `README.md` and `docs/claude-integration.md`; a drift test (`test/skills/ptah-format.test.ts`) fails if its embedded format summary falls out of step with the code.
+
+### Changed
+- Quick-added tickets are now given a due date of **today**, so they land in the new Today view.
+- **"Overdue" is now a date-only comparison**: a ticket due today is no longer treated as overdue. Previously its stored UTC-midnight timestamp counted as already in the past.
+- The Settings **Claude integration** card is temporarily hidden — the MCP registration flow isn't reliable enough yet. All backend wiring (`ptah.claude.*`, `src/mcp/**`) is untouched and the card re-enables behind a single flag.
+- `CLAUDE.md` and the `core-data` / `docs` / `mcp` subagent charters gained rules requiring any change to the on-disk format or the MCP tool set to update the new skill and bump its version; the `docs` agent now owns the skill.
+
 ## [1.0.2] - 2026-09-05
 
 Adds a two-level ticket hierarchy and a fast ticket-capture path.

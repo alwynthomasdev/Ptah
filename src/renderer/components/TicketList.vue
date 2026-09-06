@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { CSSProperties } from 'vue';
-import type { Ticket } from '@models/Ticket';
-import { PRIORITY_LABELS, STATUS_LABELS } from '@models/Ticket';
+import { ref, type CSSProperties } from 'vue';
+import type { Priority, Ticket } from '@models/Ticket';
+import { PRIORITIES, PRIORITY_LABELS, STATUS_LABELS } from '@models/Ticket';
 import { formatDate, isOverdue } from '@shared/dates';
 
 const props = defineProps<{
@@ -19,9 +19,18 @@ const emit = defineEmits<{
   open: [ticket: Ticket];
   remove: [ticket: Ticket];
   export: [ticket: Ticket];
+  setPriority: [ticket: Ticket, priority: Priority];
 }>();
 
 const dateHeading = props.variant === 'list' ? 'Due' : 'Created';
+
+/** Id of the ticket whose priority menu is open, or null. */
+const priorityMenuFor = ref<string | null>(null);
+
+function choosePriority(t: Ticket, priority: Priority) {
+  priorityMenuFor.value = null;
+  if (priority !== t.priority) emit('setPriority', t, priority);
+}
 
 function pillStyle(t: Ticket): CSSProperties {
   return {
@@ -52,7 +61,33 @@ function pillStyle(t: Ticket): CSSProperties {
         <td v-if="variant === 'list'">
           <span class="status-pill" :style="pillStyle(t)">{{ STATUS_LABELS[t.status] }}</span>
         </td>
-        <td :style="{ color: `var(--p-${t.priority})` }">{{ PRIORITY_LABELS[t.priority] }}</td>
+        <td class="cell-priority" @click.stop>
+          <button
+            type="button"
+            class="prio-btn"
+            :style="{ color: `var(--p-${t.priority})` }"
+            @click="priorityMenuFor = priorityMenuFor === t.id ? null : t.id"
+          >
+            {{ PRIORITY_LABELS[t.priority] }}
+            <span class="caret">▾</span>
+          </button>
+          <template v-if="priorityMenuFor === t.id">
+            <div class="menu-backdrop" @click="priorityMenuFor = null" />
+            <div class="menu">
+              <button
+                v-for="p in PRIORITIES"
+                :key="p"
+                type="button"
+                class="menu-opt"
+                :class="{ on: p === t.priority }"
+                :style="{ color: `var(--p-${p})` }"
+                @click="choosePriority(t, p)"
+              >
+                {{ PRIORITY_LABELS[p] }}
+              </button>
+            </div>
+          </template>
+        </td>
         <td>
           <span v-for="l in t.labels" :key="l" class="label">{{ l }}</span>
         </td>
@@ -129,6 +164,72 @@ function pillStyle(t: Ticket): CSSProperties {
 }
 .label + .label {
   margin-left: 4px;
+}
+.cell-priority {
+  position: relative;
+  white-space: nowrap;
+}
+.prio-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.prio-btn:hover {
+  border-color: var(--border);
+  background: var(--surface-2);
+}
+.prio-btn .caret {
+  font-size: 9px;
+  color: var(--text-faint);
+  opacity: 0;
+}
+.list-table tbody tr:hover .prio-btn .caret {
+  opacity: 1;
+}
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dropdown);
+}
+.menu {
+  position: absolute;
+  z-index: calc(var(--z-dropdown) + 1);
+  top: calc(100% + 2px);
+  left: 0;
+  min-width: 130px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.menu-opt {
+  text-align: left;
+  padding: 5px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.menu-opt:hover {
+  background: var(--surface-2);
+}
+.menu-opt.on {
+  background: var(--surface-2);
+  font-weight: 600;
 }
 .due {
   color: var(--text-faint);

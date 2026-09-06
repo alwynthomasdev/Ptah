@@ -1,7 +1,16 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
+import QuickAddWindow from '../views/QuickAddWindow.vue';
 
 const routes = [
   { path: '/', redirect: '/board' },
+  // Static import (not lazy) so `route.name` resolves synchronously before
+  // App.vue mounts — it branches the whole shell on this.
+  { path: '/quick-add', name: 'quick-add', component: QuickAddWindow },
+  {
+    path: '/today',
+    name: 'today',
+    component: () => import('../views/TodayView.vue'),
+  },
   {
     path: '/board',
     name: 'board',

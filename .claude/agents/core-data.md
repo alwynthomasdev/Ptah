@@ -27,6 +27,12 @@ You own everything **main-process side** of Ptah: `src/models/**`,
   derived from disk on read, never written to frontmatter; corrupt enum values
   degrade to safe defaults, not throws. Deleting a ticket is soft
   (`RecycleBinService`); deleting a project is permanent.
+- **The on-disk format is a published contract.** If you change a frontmatter
+  key, an enum (`STATUSES`/`PRIORITIES`/`TICKET_TYPES`), a default, the id
+  pattern, `project.yml`, or import/id behaviour, update
+  `.claude/skills/ptah/SKILL.md` and its `format-summary` block (or hand it to
+  the `docs` agent) and bump the skill's `version`. `test/skills/ptah-format.test.ts`
+  will fail until you do.
 
 ## Working rules
 

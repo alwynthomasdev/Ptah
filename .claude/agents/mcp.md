@@ -38,7 +38,10 @@ that split exact.
   validation `TicketService`/`createTicket`/`applyPatch` already do; let
   their thrown messages surface as the tool's error text. `update`'s `due`
   is three-state (absent = don't change, `null` = clear) — don't collapse
-  that in the schema.
+  that in the schema. If you add, remove, or rename a `ptah_*` tool or change
+  its params, update the "Using the Ptah MCP server instead" table in
+  `.claude/skills/ptah/SKILL.md` (or hand it to the `docs` agent) — the skill
+  documents these seven tools for external callers.
 - `src/mcp/server/index.ts` — entry point: parses `--config <path>` from
   argv, builds `McpServer`, registers tools, connects
   `StdioServerTransport`.

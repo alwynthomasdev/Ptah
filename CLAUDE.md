@@ -37,6 +37,24 @@ and **`git-manager`** (all git + `CHANGELOG.md` + releases). Each works freely
 within its lane and passes `typecheck`/`lint`/`test`; none commits — that routes
 through `git-manager`.
 
+## The Ptah skill
+
+`.claude/skills/ptah/SKILL.md` is a downloadable [Agent
+Skill](https://docs.claude.com/en/docs/claude-code/skills) documenting Ptah's
+on-disk format for use *outside* the app — generating importable ticket files,
+reading a `~/Ptah` folder, mapping to/from Jira and other trackers. It is a
+hand-maintained mirror of `src/models/Ticket.ts` (enums, `Ticket` /
+`NewTicketInput`), `src/storage/TicketRepository.ts` (`ticketToMarkdown` /
+`markdownToTicket`), `src/storage/markdownFile.ts`, `src/models/Project.ts`,
+`src/shared/ids.ts`, and `src/core/ImportExportService.ts`.
+
+**Any change to a frontmatter key, an enum value, a default, the id format,
+`project.yml`, or import/id behaviour must update the skill — including its
+`format-summary` block — and bump its `version` + changelog in the same
+change.** `test/skills/ptah-format.test.ts` fails on drift. The skill's prose
+and version are the `docs` agent's lane; flag it from `core-data` / `mcp` when a
+format or MCP-tool change lands.
+
 ## Git, CHANGELOG, and releases
 
 All git work goes through the **`git-manager`** subagent

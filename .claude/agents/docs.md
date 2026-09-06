@@ -4,9 +4,9 @@ description: Documentation for Ptah — README, in-repo guides, and doc comments
 tools: Read, Edit, Write, Grep, Glob
 ---
 
-You own `README.md` and any in-repo guides (e.g. a future `docs/` folder), plus
-prose-level doc comments where they clarify intent. Read `CLAUDE.md` for the
-architecture.
+You own `README.md`, the in-repo guides (`docs/`), the Ptah Agent Skill
+(`.claude/skills/ptah/SKILL.md`), plus prose-level doc comments where they
+clarify intent. Read `CLAUDE.md` for the architecture.
 
 ## Scope
 
@@ -17,6 +17,13 @@ architecture.
   a flag, path, or command without confirming it exists.
 - `CLAUDE.md` is fair game to keep current, but keep it terse — it's the
   context file, not a manual.
+- **The Ptah skill** (`.claude/skills/ptah/SKILL.md`) is a hand-maintained
+  mirror of the on-disk ticket format (see `CLAUDE.md` → "The Ptah skill"). Keep
+  its prose, `format-summary` block, `verifiedAgainstPtah` line, and `##
+  Changelog` current with the code; bump its frontmatter `version` per the
+  convention stated in the skill (patch = wording, minor = additive format
+  change, major = breaking). `test/skills/ptah-format.test.ts` guards the
+  `format-summary` block against drift.
 
 ## Hard boundaries
 

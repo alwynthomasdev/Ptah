@@ -5,6 +5,7 @@ import type { AppConfig } from '@shared/ipc';
 import { IPC } from '@shared/ipc';
 import { loadConfig, saveConfig } from './config';
 import { setDataDir } from './appState';
+import { closeQuickAddWindow, openQuickAddWindow } from './quickAddWindow';
 import { checkForUpdate, downloadUpdate, installUpdate } from './updater';
 import { connect as claudeConnect, detect as claudeDetect, disconnect as claudeDisconnect } from '../mcp/integration';
 import type { ClaudeTarget } from '@shared/ipc';
@@ -98,7 +99,18 @@ export async function registerIpc(): Promise<void> {
   );
   h(IPC.ticketsListChildren, (id) => context.tickets.listChildren(String(id)));
   h(IPC.ticketsGet, (id) => context.tickets.get(String(id)));
-  h(IPC.ticketsCreate, (input) => context.tickets.create(input as never));
+  // Hand-rolled (like the updates handlers) so it can see `evt` and fan a
+  // `tickets:changed` notice out to every *other* window — the Quick Add popup
+  // creates tickets the main window's list otherwise wouldn't know about.
+  ipcMain.handle(IPC.ticketsCreate, (evt, input) =>
+    tryResult(async () => {
+      const ticket = await context.tickets.create(input as never);
+      for (const w of BrowserWindow.getAllWindows()) {
+        if (w.webContents.id !== evt.sender.id) w.webContents.send(IPC.ticketsChanged);
+      }
+      return ticket;
+    }),
+  );
   h(IPC.ticketsUpdate, (id, patch) => context.tickets.update(String(id), patch as never));
   h(IPC.ticketsChangeProject, (id, projectKey) =>
     context.tickets.changeProject(String(id), String(projectKey)),
@@ -199,4 +211,10 @@ export async function registerIpc(): Promise<void> {
   h(IPC.claudeDetect, () => claudeDetect());
   h(IPC.claudeConnect, (target) => claudeConnect(target as ClaudeTarget));
   h(IPC.claudeDisconnect, (target) => claudeDisconnect(target as ClaudeTarget));
+
+  // ---- windows -----------------------------------------------------
+  h(IPC.windowOpenQuickAdd, (projectKey) =>
+    openQuickAddWindow(projectKey ? String(projectKey) : null),
+  );
+  h(IPC.windowCloseQuickAdd, () => closeQuickAddWindow());
 }

@@ -49,6 +49,8 @@ export const IPC = {
   ticketsUpdate: 'tickets:update',
   ticketsChangeProject: 'tickets:changeProject',
   ticketsDelete: 'tickets:delete',
+  /** Main -> renderer: a ticket was created in another window; reload lists. */
+  ticketsChanged: 'tickets:changed',
 
   binList: 'bin:list',
   binRestore: 'bin:restore',
@@ -73,6 +75,9 @@ export const IPC = {
   claudeDetect: 'claude:detect',
   claudeConnect: 'claude:connect',
   claudeDisconnect: 'claude:disconnect',
+
+  windowOpenQuickAdd: 'window:openQuickAdd',
+  windowCloseQuickAdd: 'window:closeQuickAdd',
 } as const;
 
 /**
@@ -147,5 +152,18 @@ export interface PtahApi {
     connect(target: ClaudeTarget): Promise<Result<ClaudeStatus>>;
     /** Unregister Ptah's MCP server from the given target. */
     disconnect(target: ClaudeTarget): Promise<Result<ClaudeStatus>>;
+  };
+  window: {
+    /** Open (or focus) the standalone Quick Add window, optionally preselecting a project. */
+    openQuickAdd(projectKey?: string): Promise<Result<void>>;
+    /** Close the Quick Add window if it is open. */
+    closeQuickAdd(): Promise<Result<void>>;
+  };
+  events: {
+    /**
+     * Fires in every window other than the one that created the ticket, after a
+     * successful `tickets:create`. Returns an unsubscribe function.
+     */
+    onTicketsChanged(listener: () => void): () => void;
   };
 }

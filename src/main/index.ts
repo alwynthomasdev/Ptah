@@ -4,6 +4,7 @@ import { app, BrowserWindow, nativeTheme, net, protocol } from 'electron';
 import { registerIpc } from './ipc';
 import { loadConfig } from './config';
 import { getDataDir, resolveMediaPath, setDataDir } from './appState';
+import { closeQuickAddWindow } from './quickAddWindow';
 
 // Bundled to CommonJS, so `__dirname` is available natively.
 // dist-electron/main -> project root (or app.asar root when packaged)
@@ -42,6 +43,10 @@ function createWindow(): void {
       sandbox: false,
     },
   });
+
+  // The Quick Add window is an accessory (skipTaskbar) — never let it outlive
+  // its main window.
+  win.on('closed', () => closeQuickAddWindow());
 
   if (!app.isPackaged && DEV_SERVER_URL) {
     void win.loadURL(DEV_SERVER_URL);

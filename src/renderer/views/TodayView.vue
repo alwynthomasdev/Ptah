@@ -1,25 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { Priority, Ticket } from '@models/Ticket';
 import { useRouter } from 'vue-router';
-import type { ListScope } from '../stores/tickets';
+import type { Ticket } from '@models/Ticket';
 import { useTicketsStore } from '../stores/tickets';
 import { call, ptah } from '../api';
-import TicketList from './TicketList.vue';
+import TicketList from '../components/TicketList.vue';
 
-const props = defineProps<{
-  /** Which slice of statuses this view shows. */
-  scope: ListScope;
-  /** Column set for the table. */
-  variant: 'list' | 'backlog' | 'archive';
-  empty?: string;
-}>();
 const emit = defineEmits<{ changed: [] }>();
-
 const tickets = useTicketsStore();
 const router = useRouter();
 
-const shown = computed(() => tickets.scopedList(props.scope));
+const rows = computed<Ticket[]>(() => tickets.dueToday);
+const overdue = computed(() => tickets.dueTodayOverdueCount);
 
 async function remove(t: Ticket) {
   if (!confirm(`Move ${t.id} to the recycle bin?`)) return;
@@ -31,11 +23,6 @@ async function exportTicket(t: Ticket) {
   await call(ptah.io.exportTicket(t.id));
 }
 
-async function setPriority(t: Ticket, priority: Priority) {
-  await tickets.update(t.id, { priority });
-  emit('changed');
-}
-
 function open(t: Ticket) {
   router.push({ name: 'ticket', params: { id: t.id } });
 }
@@ -43,14 +30,20 @@ function open(t: Ticket) {
 
 <template>
   <section class="view">
+    <header class="head">
+      <h1>Today</h1>
+      <p class="sub">
+        <span>{{ rows.length }} due today or earlier</span>
+        <span v-if="overdue > 0" class="warn">⚠ {{ overdue }} overdue</span>
+      </p>
+    </header>
     <TicketList
-      :tickets="shown"
-      :variant="variant"
-      :empty="empty"
+      :tickets="rows"
+      variant="list"
+      empty="Nothing due today. 🎉"
       @open="open"
       @remove="remove"
       @export="exportTicket"
-      @set-priority="setPriority"
     />
   </section>
 </template>
@@ -60,5 +53,25 @@ function open(t: Ticket) {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.head h1 {
+  margin: 0;
+  font-size: 16px;
+}
+.sub {
+  margin: 0;
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.sub .warn {
+  color: var(--p-highest);
+  font-weight: 600;
 }
 </style>

@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { nextTick, ref } from 'vue';
 import type { Ticket } from '@models/Ticket';
+import { todayIso } from '@shared/dates';
 import { useTicketsStore } from '../stores/tickets';
 import { useProjectsStore } from '../stores/projects';
 import { defaultProjectKey } from '../lib/ticketForm';
 
 const props = defineProps<{
   projectKey?: string | null;
+  /** Render inline to fill a host container (the standalone window) instead of as a modal overlay. */
+  embedded?: boolean;
 }>();
 const emit = defineEmits<{ close: []; created: [ticket: Ticket] }>();
 
@@ -28,7 +31,11 @@ async function submit() {
   error.value = null;
   saving.value = true;
   try {
-    const ticket = await tickets.create({ title: trimmed, project: project.value });
+    const ticket = await tickets.create({
+      title: trimmed,
+      project: project.value,
+      due: todayIso(),
+    });
     lastAdded.value = ticket.id;
     title.value = '';
     emit('created', ticket);
@@ -43,8 +50,12 @@ async function submit() {
 </script>
 
 <template>
-  <div class="backdrop" @click.self="emit('close')" @keydown.esc="emit('close')">
-    <div class="card dialog">
+  <div
+    :class="props.embedded ? 'embedded' : 'backdrop'"
+    @click.self="!props.embedded && emit('close')"
+    @keydown.esc="emit('close')"
+  >
+    <div class="card dialog" :class="{ flush: props.embedded }">
       <header class="row">
         <h3>Quick add</h3>
         <span class="spacer" />
@@ -97,12 +108,25 @@ async function submit() {
   place-items: center;
   z-index: var(--z-overlay);
 }
+.embedded {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
 .dialog {
   width: min(420px, 92vw);
   max-height: 90vh;
   overflow: auto;
   padding: 16px 20px 20px;
   border-radius: var(--radius-lg);
+}
+.dialog.flush {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border: none;
+  border-radius: 0;
+  background: var(--bg);
 }
 h3 {
   margin: 4px 0;

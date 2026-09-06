@@ -33,7 +33,9 @@ Named after the ancient Egyptian creator god.
 - **Themes:** Light / Dark / System, persisted and applied before first paint.
 - **Claude integration** — connect Claude Code or Claude Desktop from Settings so Claude
   can read, create, edit, and delete your tickets directly. See
-  [docs/claude-integration.md](./docs/claude-integration.md).
+  [docs/claude-integration.md](./docs/claude-integration.md). For bulk import and
+  migrating to/from other trackers there's a downloadable skill,
+  [.claude/skills/ptah/SKILL.md](./.claude/skills/ptah/SKILL.md).
 
 ## Usage
 
@@ -108,7 +110,8 @@ ticket in it are removed, behind a confirmation.
 - **Import / export** panel — see below.
 - **Claude integration** — connect Claude Code and/or Claude Desktop with one click; see
   [docs/claude-integration.md](./docs/claude-integration.md) for what it does, how to set
-  it up, and its limitations.
+  it up, and its limitations. That page also links the downloadable
+  [Ptah skill](./.claude/skills/ptah/SKILL.md) for bulk import and tracker migration.
 
 ## Import / export
 
@@ -121,6 +124,10 @@ ticket in it are removed, behind a confirmation.
 Import accepts one or more `.md` / `.zip` files and drops them into a project you
 choose. **Imported tickets always get fresh ids** from the target project's
 counter — importing never overwrites an existing ticket.
+
+To turn a Jira (or other) export into importable files, hand
+[.claude/skills/ptah/SKILL.md](./.claude/skills/ptah/SKILL.md) to Claude — it
+documents the on-disk ticket format and the field mapping.
 
 ## Where your data lives
 

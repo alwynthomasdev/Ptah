@@ -41,6 +41,20 @@ That's it. No manual configuration is needed in the normal case. The card shows 
 target's status — **Not installed**, **Not connected**, or **Connected** — and re-checks it
 after every Connect/Disconnect. **Disconnect** removes the registration the same way.
 
+## Bulk import and migrating from other trackers
+
+The tools above are for live, one-at-a-time edits. For pulling a whole backlog *in* from
+Jira (or another tracker), or lifting Ptah tickets *out* to one, there is a downloadable
+[Agent Skill](https://docs.claude.com/en/docs/claude-code/skills) in this repo:
+[`.claude/skills/ptah/SKILL.md`](../.claude/skills/ptah/SKILL.md).
+
+It teaches Claude the on-disk ticket format so it can generate importable `.md` / `.zip`
+files for **Settings → Import / export**, read an existing `~/Ptah` folder, and map fields
+to and from another tracker. It needs neither this MCP server nor Ptah running — copy the
+`ptah/` folder into `~/.claude/skills/` (or a project's `.claude/skills/`) and restart
+Claude. When the MCP server *is* connected, the skill also knows to prefer these tools for
+small changes.
+
 ## If Connect doesn't work
 
 Connect works by detecting your Claude install and registering Ptah as an MCP server for

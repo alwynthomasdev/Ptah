@@ -9,5 +9,6 @@ release/
 !.vscode/extensions.json
 .claude/*
 !.claude/agents/
+!.claude/skills/
 coverage/
 !specs/

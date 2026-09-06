@@ -68,6 +68,11 @@ async function exportTicket(t: Ticket) {
   await call(ptah.io.exportTicket(t.id));
 }
 
+async function setPriority(t: Ticket, priority: Priority) {
+  await tickets.update(t.id, { priority });
+  emit('changed');
+}
+
 function open(t: Ticket) {
   router.push({ name: 'ticket', params: { id: t.id } });
 }
@@ -118,6 +123,7 @@ function open(t: Ticket) {
       @open="open"
       @remove="remove"
       @export="exportTicket"
+      @set-priority="setPriority"
     />
   </section>
 </template>
