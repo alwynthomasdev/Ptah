@@ -6,6 +6,8 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-06
+
 Adds **notes and notebooks** — a second first-class Markdown-file type living
 next to tickets. A note is just a title, a Markdown body, and labels; notebooks
 group notes the way projects group tickets, and every install starts with one
