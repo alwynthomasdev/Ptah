@@ -6,6 +6,7 @@ import { IPC } from '@shared/ipc';
 import { loadConfig, saveConfig } from './config';
 import { setDataDir } from './appState';
 import { closeQuickAddWindow, openQuickAddWindow } from './quickAddWindow';
+import { closeQuickNoteWindow, openQuickNoteWindow } from './quickNoteWindow';
 import { checkForUpdate, downloadUpdate, installUpdate } from './updater';
 import { connect as claudeConnect, detect as claudeDetect, disconnect as claudeDisconnect } from '../mcp/integration';
 import * as jira from '../jira/integration';
@@ -22,7 +23,7 @@ export async function registerIpc(): Promise<void> {
   let config: AppConfig = await loadConfig();
   setDataDir(config.dataDir);
   let context = new AppContext(config.dataDir);
-  await context.init(config.defaultProjectName);
+  await context.init(config.defaultProjectName, config.defaultNotebookName);
 
   const h = <T>(channel: string, fn: (...args: unknown[]) => Promise<T> | T) =>
     ipcMain.handle(channel, (_evt, ...args) => tryResult(() => fn(...args)));
@@ -37,7 +38,7 @@ export async function registerIpc(): Promise<void> {
     config = await saveConfig({ ...config, dataDir: dir });
     setDataDir(config.dataDir);
     context = new AppContext(config.dataDir);
-    await context.init(config.defaultProjectName);
+    await context.init(config.defaultProjectName, config.defaultNotebookName);
     // Defer so this IPC reply is flushed before the page tears down.
     setTimeout(() => {
       for (const w of BrowserWindow.getAllWindows()) w.reload();
@@ -60,6 +61,13 @@ export async function registerIpc(): Promise<void> {
     const trimmed = String(name).trim();
     if (!trimmed) throw new Error('Default project name must not be empty.');
     config = await saveConfig({ ...config, defaultProjectName: trimmed });
+    return config;
+  });
+
+  h(IPC.configSetDefaultNotebookName, async (name) => {
+    const trimmed = String(name).trim();
+    if (!trimmed) throw new Error('Default notebook name must not be empty.');
+    config = await saveConfig({ ...config, defaultNotebookName: trimmed });
     return config;
   });
 
@@ -131,6 +139,41 @@ export async function registerIpc(): Promise<void> {
   h(IPC.binPurge, (id) => context.recycleBin.purge(String(id)));
   h(IPC.binEmpty, () => context.recycleBin.empty());
 
+  // ---- notebooks --------------------------------------------------
+  h(IPC.notebooksList, () => context.notebooks.list());
+  h(IPC.notebooksCreate, (input) => context.notebooks.create(input as never));
+  h(IPC.notebooksRename, (key, name) => context.notebooks.rename(String(key), String(name)));
+  h(IPC.notebooksDelete, (key) => context.notebooks.delete(String(key)));
+
+  // ---- notes ----------------------------------------------------
+  h(IPC.notesList, (notebookKey) =>
+    context.notes.list(notebookKey ? String(notebookKey) : undefined),
+  );
+  h(IPC.notesGet, (id) => context.notes.get(String(id)));
+  // Hand-rolled like `ticketsCreate` so it can fan a `notes:changed` notice out
+  // to every *other* window — the Quick Note popup creates notes the main
+  // window's list otherwise wouldn't know about.
+  ipcMain.handle(IPC.notesCreate, (evt, input) =>
+    tryResult(async () => {
+      const note = await context.notes.create(input as never);
+      for (const w of BrowserWindow.getAllWindows()) {
+        if (w.webContents.id !== evt.sender.id) w.webContents.send(IPC.notesChanged);
+      }
+      return note;
+    }),
+  );
+  h(IPC.notesUpdate, (id, patch) => context.notes.update(String(id), patch as never));
+  h(IPC.notesChangeNotebook, (id, notebookKey) =>
+    context.notes.changeNotebook(String(id), String(notebookKey)),
+  );
+  h(IPC.notesDelete, (id) => context.notes.delete(String(id)));
+
+  // ---- note recycle bin -----------------------------------------
+  h(IPC.noteBinList, () => context.noteRecycleBin.list());
+  h(IPC.noteBinRestore, (id) => context.noteRecycleBin.restore(String(id)));
+  h(IPC.noteBinPurge, (id) => context.noteRecycleBin.purge(String(id)));
+  h(IPC.noteBinEmpty, () => context.noteRecycleBin.empty());
+
   // ---- attachments -----------------------------------------------
   h(IPC.attachmentsAdd, async (ticketId) => {
     const id = String(ticketId);
@@ -200,6 +243,42 @@ export async function registerIpc(): Promise<void> {
     return context.importExport.importFromFiles(picked.filePaths, String(targetProjectKey));
   });
 
+  h(IPC.ioExportNote, async (noteId) => {
+    const id = String(noteId);
+    await context.notes.get(id); // 404s early if the id is bad
+    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+    const picked = await dialog.showSaveDialog(win, {
+      title: `Export ${id}`,
+      defaultPath: `${id}.md`,
+      filters: [{ name: 'Markdown', extensions: ['md'] }],
+    });
+    if (picked.canceled || !picked.filePath) return false;
+    await context.noteImportExport.exportNotes([id], picked.filePath);
+    return true;
+  });
+  h(IPC.ioExportNotebook, async (notebookKey) => {
+    const key = String(notebookKey);
+    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+    const picked = await dialog.showSaveDialog(win, {
+      title: `Export notebook ${key}`,
+      defaultPath: `${key}.zip`,
+      filters: [{ name: 'Zip archive', extensions: ['zip'] }],
+    });
+    if (picked.canceled || !picked.filePath) return false;
+    await context.noteImportExport.exportNotebook(key, picked.filePath);
+    return true;
+  });
+  h(IPC.ioImportNotes, async (targetNotebookKey) => {
+    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+    const picked = await dialog.showOpenDialog(win, {
+      title: 'Import notes',
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Note or archive', extensions: ['md', 'zip'] }],
+    });
+    if (picked.canceled || picked.filePaths.length === 0) return [];
+    return context.noteImportExport.importFromFiles(picked.filePaths, String(targetNotebookKey));
+  });
+
   // ---- updates -------------------------------------------------------
   // checkForUpdate/downloadUpdate already resolve a Result themselves (they
   // need to distinguish "no update" from "error" internally), so register
@@ -229,4 +308,8 @@ export async function registerIpc(): Promise<void> {
     openQuickAddWindow(projectKey ? String(projectKey) : null),
   );
   h(IPC.windowCloseQuickAdd, () => closeQuickAddWindow());
+  h(IPC.windowOpenQuickNote, (notebookKey) =>
+    openQuickNoteWindow(notebookKey ? String(notebookKey) : null),
+  );
+  h(IPC.windowCloseQuickNote, () => closeQuickNoteWindow());
 }

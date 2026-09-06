@@ -1,5 +1,7 @@
 import type { NewProjectInput, Project } from '@models/Project';
 import type { NewTicketInput, Ticket, TicketPatch } from '@models/Ticket';
+import type { NewNotebookInput, Notebook } from '@models/Notebook';
+import type { NewNoteInput, Note, NotePatch } from '@models/Note';
 import type { Result } from './result';
 
 /** App configuration persisted in Electron `userData/config.json`. */
@@ -7,6 +9,7 @@ export interface AppConfig {
   dataDir: string;
   theme: 'light' | 'dark' | 'system';
   defaultProjectName: string;
+  defaultNotebookName: string;
 }
 
 /** Info about an available update, surfaced from GitHub Releases via `electron-updater`. */
@@ -83,6 +86,7 @@ export const IPC = {
   configSetTheme: 'config:setTheme',
   configSetDataDir: 'config:setDataDir',
   configSetDefaultProjectName: 'config:setDefaultProjectName',
+  configSetDefaultNotebookName: 'config:setDefaultNotebookName',
   configPickDataDir: 'config:pickDataDir',
 
   projectsList: 'projects:list',
@@ -105,6 +109,25 @@ export const IPC = {
   binPurge: 'bin:purge',
   binEmpty: 'bin:empty',
 
+  notebooksList: 'notebooks:list',
+  notebooksCreate: 'notebooks:create',
+  notebooksRename: 'notebooks:rename',
+  notebooksDelete: 'notebooks:delete',
+
+  notesList: 'notes:list',
+  notesGet: 'notes:get',
+  notesCreate: 'notes:create',
+  notesUpdate: 'notes:update',
+  notesChangeNotebook: 'notes:changeNotebook',
+  notesDelete: 'notes:delete',
+  /** Main -> renderer: a note was created in another window; reload lists. */
+  notesChanged: 'notes:changed',
+
+  noteBinList: 'noteBin:list',
+  noteBinRestore: 'noteBin:restore',
+  noteBinPurge: 'noteBin:purge',
+  noteBinEmpty: 'noteBin:empty',
+
   attachmentsAdd: 'attachments:add',
   attachmentsRemove: 'attachments:remove',
   attachmentsOpen: 'attachments:open',
@@ -113,6 +136,9 @@ export const IPC = {
   ioExportTicket: 'io:exportTicket',
   ioExportProject: 'io:exportProject',
   ioImport: 'io:import',
+  ioExportNote: 'io:exportNote',
+  ioExportNotebook: 'io:exportNotebook',
+  ioImportNotes: 'io:importNotes',
 
   systemOpenExternal: 'system:openExternal',
 
@@ -134,6 +160,8 @@ export const IPC = {
 
   windowOpenQuickAdd: 'window:openQuickAdd',
   windowCloseQuickAdd: 'window:closeQuickAdd',
+  windowOpenQuickNote: 'window:openQuickNote',
+  windowCloseQuickNote: 'window:closeQuickNote',
 } as const;
 
 /**
@@ -146,6 +174,7 @@ export interface PtahApi {
     setTheme(theme: AppConfig['theme']): Promise<Result<AppConfig>>;
     setDataDir(dir: string): Promise<Result<AppConfig>>;
     setDefaultProjectName(name: string): Promise<Result<AppConfig>>;
+    setDefaultNotebookName(name: string): Promise<Result<AppConfig>>;
     pickDataDir(): Promise<Result<AppConfig | null>>;
   };
   projects: {
@@ -171,6 +200,27 @@ export interface PtahApi {
     purge(id: string): Promise<Result<void>>;
     empty(): Promise<Result<void>>;
   };
+  notebooks: {
+    list(): Promise<Result<Notebook[]>>;
+    create(input: NewNotebookInput): Promise<Result<Notebook>>;
+    rename(key: string, name: string): Promise<Result<Notebook>>;
+    delete(key: string): Promise<Result<void>>;
+  };
+  notes: {
+    list(notebookKey?: string): Promise<Result<Note[]>>;
+    get(id: string): Promise<Result<Note>>;
+    create(input: NewNoteInput): Promise<Result<Note>>;
+    update(id: string, patch: NotePatch): Promise<Result<Note>>;
+    /** Move a note to a different notebook, minting it a new id. */
+    changeNotebook(id: string, targetNotebookKey: string): Promise<Result<Note>>;
+    delete(id: string): Promise<Result<void>>;
+  };
+  noteBin: {
+    list(): Promise<Result<Note[]>>;
+    restore(id: string): Promise<Result<Note>>;
+    purge(id: string): Promise<Result<void>>;
+    empty(): Promise<Result<void>>;
+  };
   attachments: {
     /** Open a native picker, copy the chosen files onto the ticket. */
     add(ticketId: string): Promise<Result<Ticket>>;
@@ -188,6 +238,12 @@ export interface PtahApi {
     exportProject(projectKey: string, opts: { media: boolean }): Promise<Result<boolean>>;
     /** Open a picker for `.md` / `.zip` files and import them into a project. */
     import(targetProjectKey: string): Promise<Result<Ticket[]>>;
+    /** Export one note as `.md`. Resolves `false` if the user cancels the save dialog. */
+    exportNote(noteId: string): Promise<Result<boolean>>;
+    /** Export a whole notebook to a `.zip`. Resolves `false` on cancel. */
+    exportNotebook(notebookKey: string): Promise<Result<boolean>>;
+    /** Open a picker for `.md` / `.zip` files and import them into a notebook. */
+    importNotes(targetNotebookKey: string): Promise<Result<Note[]>>;
   };
   system: {
     /** Open an `http(s)`/`mailto` URL in the OS default handler. */
@@ -236,6 +292,10 @@ export interface PtahApi {
     openQuickAdd(projectKey?: string): Promise<Result<void>>;
     /** Close the Quick Add window if it is open. */
     closeQuickAdd(): Promise<Result<void>>;
+    /** Open (or focus) the standalone Quick Note window, optionally preselecting a notebook. */
+    openQuickNote(notebookKey?: string): Promise<Result<void>>;
+    /** Close the Quick Note window if it is open. */
+    closeQuickNote(): Promise<Result<void>>;
   };
   events: {
     /**
@@ -243,5 +303,10 @@ export interface PtahApi {
      * successful `tickets:create`. Returns an unsubscribe function.
      */
     onTicketsChanged(listener: () => void): () => void;
+    /**
+     * Fires in every window other than the one that created the note, after a
+     * successful `notes:create`. Returns an unsubscribe function.
+     */
+    onNotesChanged(listener: () => void): () => void;
   };
 }

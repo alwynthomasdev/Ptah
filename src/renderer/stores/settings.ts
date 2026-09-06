@@ -9,6 +9,7 @@ interface State {
   theme: Theme;
   loaded: boolean;
   defaultProjectName: string;
+  defaultNotebookName: string;
 }
 
 /** localStorage key the pre-paint boot script (public/theme-boot.js) reads. */
@@ -42,13 +43,20 @@ if (typeof window !== 'undefined') {
 }
 
 export const useSettingsStore = defineStore('settings', {
-  state: (): State => ({ dataDir: '', theme: 'system', loaded: false, defaultProjectName: '' }),
+  state: (): State => ({
+    dataDir: '',
+    theme: 'system',
+    loaded: false,
+    defaultProjectName: '',
+    defaultNotebookName: '',
+  }),
   actions: {
     async load() {
       const cfg = await call(ptah.config.get());
       this.dataDir = cfg.dataDir;
       this.theme = cfg.theme;
       this.defaultProjectName = cfg.defaultProjectName;
+      this.defaultNotebookName = cfg.defaultNotebookName;
       this.loaded = true;
       applyTheme(this.theme);
     },
@@ -60,6 +68,10 @@ export const useSettingsStore = defineStore('settings', {
     async setDefaultProjectName(name: string) {
       const cfg = await call(ptah.config.setDefaultProjectName(name));
       this.defaultProjectName = cfg.defaultProjectName;
+    },
+    async setDefaultNotebookName(name: string) {
+      const cfg = await call(ptah.config.setDefaultNotebookName(name));
+      this.defaultNotebookName = cfg.defaultNotebookName;
     },
     async pickDataDir() {
       const cfg = await call(ptah.config.pickDataDir());

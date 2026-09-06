@@ -10,8 +10,11 @@ import path from 'node:path';
  *   projects/<KEY>/project.yml
  *   projects/<KEY>/tickets/<ID>.md
  *   projects/<KEY>/attachments/<ID>/<file>
+ *   notebooks/<KEY>/notebook.yml
+ *   notebooks/<KEY>/notes/<ID>.md
  *   .recyclebin/tickets/<ID>.md
  *   .recyclebin/attachments/<ID>/<file>
+ *   .recyclebin/notes/<ID>.md
  */
 export class FileStore {
   constructor(public readonly dataDir: string) {}
@@ -35,14 +38,38 @@ export class FileStore {
   attachmentsDir(key: string, id: string): string {
     return path.join(this.projectDir(key), 'attachments', id);
   }
+  notebooksDir(): string {
+    return path.join(this.dataDir, 'notebooks');
+  }
+  notebookDir(key: string): string {
+    return path.join(this.notebooksDir(), key);
+  }
+  notebookFile(key: string): string {
+    return path.join(this.notebookDir(key), 'notebook.yml');
+  }
+  notesDir(key: string): string {
+    return path.join(this.notebookDir(key), 'notes');
+  }
+  noteFile(key: string, id: string): string {
+    return path.join(this.notesDir(key), `${id}.md`);
+  }
   recycleBinDir(): string {
     return path.join(this.dataDir, '.recyclebin');
   }
+  recycledTicketsDir(): string {
+    return path.join(this.recycleBinDir(), 'tickets');
+  }
   recycledTicketFile(id: string): string {
-    return path.join(this.recycleBinDir(), 'tickets', `${id}.md`);
+    return path.join(this.recycledTicketsDir(), `${id}.md`);
   }
   recycledAttachmentsDir(id: string): string {
     return path.join(this.recycleBinDir(), 'attachments', id);
+  }
+  recycledNotesDir(): string {
+    return path.join(this.recycleBinDir(), 'notes');
+  }
+  recycledNoteFile(id: string): string {
+    return path.join(this.recycledNotesDir(), `${id}.md`);
   }
 
   // ---- primitives -------------------------------------------------------

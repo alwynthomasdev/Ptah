@@ -2,8 +2,11 @@
 import { onMounted, ref } from 'vue';
 import type { ClaudeDetectResult, ClaudeTarget, UpdateInfo } from '@shared/ipc';
 import { DEFAULT_PROJECT_KEY } from '@models/Project';
+import { DEFAULT_NOTEBOOK_KEY } from '@models/Notebook';
 import { useSettingsStore } from '../stores/settings';
 import { useProjectsStore } from '../stores/projects';
+import { useNotebooksStore } from '../stores/notebooks';
+import { useNotesStore } from '../stores/notes';
 import { useJiraStore } from '../stores/jira';
 import { call, ptah } from '../api';
 import ThemeToggle from '../components/ThemeToggle.vue';
@@ -11,6 +14,8 @@ import ThemeToggle from '../components/ThemeToggle.vue';
 const emit = defineEmits<{ changed: [] }>();
 const settings = useSettingsStore();
 const projects = useProjectsStore();
+const notebooks = useNotebooksStore();
+const notes = useNotesStore();
 const jira = useJiraStore();
 const busy = ref(false);
 
@@ -22,11 +27,23 @@ const ioBusy = ref(false);
 const ioMsg = ref<string | null>(null);
 const ioErr = ref<string | null>(null);
 
+const firstNotebookKey = notebooks.activeKey ?? notebooks.items[0]?.key ?? '';
+const noteExportKey = ref(firstNotebookKey);
+const noteImportKey = ref(firstNotebookKey);
+const noteIoBusy = ref(false);
+const noteIoMsg = ref<string | null>(null);
+const noteIoErr = ref<string | null>(null);
+
 const projectsError = ref<string | null>(null);
+const notebooksError = ref<string | null>(null);
 
 const defaultProjectNameInput = ref(settings.defaultProjectName);
 const defaultProjectNameBusy = ref(false);
 const defaultProjectNameErr = ref<string | null>(null);
+
+const defaultNotebookNameInput = ref(settings.defaultNotebookName);
+const defaultNotebookNameBusy = ref(false);
+const defaultNotebookNameErr = ref<string | null>(null);
 
 async function saveDefaultProjectName() {
   const name = defaultProjectNameInput.value.trim();
@@ -48,6 +65,60 @@ async function saveDefaultProjectName() {
   }
 }
 
+async function saveDefaultNotebookName() {
+  const name = defaultNotebookNameInput.value.trim();
+  if (!name) return;
+  defaultNotebookNameBusy.value = true;
+  defaultNotebookNameErr.value = null;
+  try {
+    await settings.setDefaultNotebookName(name);
+    defaultNotebookNameInput.value = settings.defaultNotebookName;
+    if (notebooks.byKey(DEFAULT_NOTEBOOK_KEY)) {
+      await notebooks.rename(DEFAULT_NOTEBOOK_KEY, name);
+    } else {
+      await notebooks.load();
+    }
+    emit('changed');
+  } catch (e) {
+    defaultNotebookNameErr.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    defaultNotebookNameBusy.value = false;
+  }
+}
+
+async function exportNotebook() {
+  if (!noteExportKey.value) return;
+  noteIoBusy.value = true;
+  noteIoMsg.value = null;
+  noteIoErr.value = null;
+  try {
+    const done = await call(ptah.io.exportNotebook(noteExportKey.value));
+    if (done) noteIoMsg.value = `Exported ${noteExportKey.value}.`;
+  } catch (e) {
+    noteIoErr.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    noteIoBusy.value = false;
+  }
+}
+
+async function importNotes() {
+  if (!noteImportKey.value) return;
+  noteIoBusy.value = true;
+  noteIoMsg.value = null;
+  noteIoErr.value = null;
+  try {
+    const created = await call(ptah.io.importNotes(noteImportKey.value));
+    if (created.length) {
+      noteIoMsg.value = `Imported ${created.length} note${created.length === 1 ? '' : 's'} into ${noteImportKey.value}.`;
+      emit('changed');
+    }
+  } catch (e) {
+    noteIoErr.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    noteIoBusy.value = false;
+  }
+}
+
 async function deleteProject(p: { key: string; name: string }) {
   if (
     !confirm(
@@ -62,6 +133,24 @@ async function deleteProject(p: { key: string; name: string }) {
     emit('changed');
   } catch (e) {
     projectsError.value = e instanceof Error ? e.message : String(e);
+  }
+}
+
+async function deleteNotebook(nb: { key: string; name: string }) {
+  if (
+    !confirm(
+      `Permanently delete notebook "${nb.name}" and all its notes? This cannot be undone and does not use the recycle bin.`,
+    )
+  ) {
+    return;
+  }
+  notebooksError.value = null;
+  try {
+    await notebooks.remove(nb.key);
+    await notes.load();
+    emit('changed');
+  } catch (e) {
+    notebooksError.value = e instanceof Error ? e.message : String(e);
   }
 }
 
@@ -373,6 +462,27 @@ async function installUpdate() {
     </div>
 
     <div class="card block">
+      <h3>Default notebook</h3>
+      <p class="muted small">
+        Every Ptah install starts with one notebook (key <code>NOTEBOOK</code>). Its name is
+        yours to set.
+      </p>
+      <div class="io-row">
+        <label class="io-field">
+          Name
+          <input v-model="defaultNotebookNameInput" type="text" />
+        </label>
+        <button
+          :disabled="defaultNotebookNameBusy || !defaultNotebookNameInput.trim()"
+          @click="saveDefaultNotebookName"
+        >
+          {{ defaultNotebookNameBusy ? 'Saving…' : 'Save' }}
+        </button>
+      </div>
+      <p v-if="defaultNotebookNameErr" class="err small">{{ defaultNotebookNameErr }}</p>
+    </div>
+
+    <div class="card block">
       <h3>Projects</h3>
 
       <div v-if="projects.items.length === 0" class="muted small">No projects yet.</div>
@@ -393,6 +503,31 @@ async function installUpdate() {
         </li>
       </ul>
       <p v-if="projectsError" class="err small">{{ projectsError }}</p>
+    </div>
+
+    <div class="card block">
+      <h3>Notebooks</h3>
+
+      <div v-if="notebooks.items.length === 0" class="muted small">No notebooks yet.</div>
+      <ul v-else class="project-list">
+        <li v-for="nb in notebooks.orderedItems" :key="nb.key">
+          <span class="proj-name">{{ nb.name }}</span>
+          <span class="proj-key mono">{{ nb.key }}</span>
+          <span class="spacer" />
+          <button
+            type="button"
+            class="ghost small danger"
+            :disabled="nb.key === DEFAULT_NOTEBOOK_KEY"
+            :title="
+              nb.key === DEFAULT_NOTEBOOK_KEY ? 'The default notebook cannot be deleted.' : undefined
+            "
+            @click="deleteNotebook(nb)"
+          >
+            Delete
+          </button>
+        </li>
+      </ul>
+      <p v-if="notebooksError" class="err small">{{ notebooksError }}</p>
     </div>
 
     <div class="card block">
@@ -431,6 +566,43 @@ async function installUpdate() {
         <p class="muted small">
           A single ticket with no attachments exports as a <code>.md</code> file; otherwise a
           <code>.zip</code>. Import accepts either and always creates new ticket ids.
+        </p>
+      </template>
+
+      <hr v-if="notebooks.items.length && projects.items.length" class="io-sep" />
+
+      <template v-if="notebooks.items.length">
+        <div class="io-row">
+          <label class="io-field">
+            Export notebook
+            <select v-model="noteExportKey">
+              <option v-for="nb in notebooks.orderedItems" :key="nb.key" :value="nb.key">
+                {{ nb.name }}
+              </option>
+            </select>
+          </label>
+          <button :disabled="noteIoBusy || !noteExportKey" @click="exportNotebook">
+            Export notebook…
+          </button>
+        </div>
+
+        <div class="io-row">
+          <label class="io-field">
+            Import into
+            <select v-model="noteImportKey">
+              <option v-for="nb in notebooks.orderedItems" :key="nb.key" :value="nb.key">
+                {{ nb.name }}
+              </option>
+            </select>
+          </label>
+          <button :disabled="noteIoBusy || !noteImportKey" @click="importNotes">Import notes…</button>
+        </div>
+
+        <p v-if="noteIoMsg" class="muted small">{{ noteIoMsg }}</p>
+        <p v-if="noteIoErr" class="err small">{{ noteIoErr }}</p>
+        <p class="muted small">
+          A single note exports as a <code>.md</code> file; a whole notebook as a
+          <code>.zip</code>. Import accepts either and always creates new note ids.
         </p>
       </template>
     </div>
@@ -570,6 +742,12 @@ h3 {
   gap: 6px;
   font-size: 13px;
   color: var(--text-dim);
+}
+.io-sep {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 4px 0;
+  width: 100%;
 }
 .update-row {
   display: flex;

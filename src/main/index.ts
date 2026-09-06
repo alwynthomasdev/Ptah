@@ -5,6 +5,7 @@ import { registerIpc } from './ipc';
 import { loadConfig } from './config';
 import { getDataDir, resolveMediaPath, setDataDir } from './appState';
 import { closeQuickAddWindow } from './quickAddWindow';
+import { closeQuickNoteWindow } from './quickNoteWindow';
 
 // Bundled to CommonJS, so `__dirname` is available natively.
 // dist-electron/main -> project root (or app.asar root when packaged)
@@ -44,9 +45,12 @@ function createWindow(): void {
     },
   });
 
-  // The Quick Add window is an accessory (skipTaskbar) — never let it outlive
-  // its main window.
-  win.on('closed', () => closeQuickAddWindow());
+  // The Quick Add / Quick Note windows are accessories (skipTaskbar) — never let
+  // them outlive their main window.
+  win.on('closed', () => {
+    closeQuickAddWindow();
+    closeQuickNoteWindow();
+  });
 
   if (!app.isPackaged && DEV_SERVER_URL) {
     void win.loadURL(DEV_SERVER_URL);

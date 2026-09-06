@@ -6,8 +6,12 @@ import { call, ptah } from './api';
 import { useSettingsStore } from './stores/settings';
 import { useProjectsStore } from './stores/projects';
 import { useTicketsStore } from './stores/tickets';
+import { useNotebooksStore } from './stores/notebooks';
+import { useNotesStore } from './stores/notes';
 import ProjectPicker from './components/ProjectPicker.vue';
+import NotebookPicker from './components/NotebookPicker.vue';
 import TicketDialog from './components/TicketDialog.vue';
+import NoteDialog from './components/NoteDialog.vue';
 import TopBar from './components/TopBar.vue';
 import UpdateDialog from './components/UpdateDialog.vue';
 import ViewTabs from './components/ViewTabs.vue';
@@ -16,19 +20,27 @@ import Toolbar from './components/Toolbar.vue';
 const settings = useSettingsStore();
 const projects = useProjectsStore();
 const tickets = useTicketsStore();
+const notebooks = useNotebooksStore();
+const notes = useNotesStore();
 const route = useRoute();
 const router = useRouter();
 
 const booting = ref(true);
 const error = ref<string | null>(null);
 const showNew = ref(false);
+const showNewNote = ref(false);
 const updateInfo = ref<UpdateInfo | null>(null);
+const topBar = ref<InstanceType<typeof TopBar> | null>(null);
 
-/** This bundle also backs the standalone Quick Add window (route `/quick-add`),
- *  which renders only its own view — no shell, no boot side-effects. The hash
- *  check covers first mount, before the router's initial navigation resolves. */
+/** This bundle also backs the standalone Quick Add / Quick Note windows, which
+ *  render only their own view — no shell, no boot side-effects. The hash check
+ *  covers first mount, before the router's initial navigation resolves. */
+const POPUP_ROUTES = ['quick-add', 'quick-note'];
 const isPopup = computed(
-  () => route.name === 'quick-add' || window.location.hash.startsWith('#/quick-add'),
+  () =>
+    POPUP_ROUTES.includes(String(route.name)) ||
+    window.location.hash.startsWith('#/quick-add') ||
+    window.location.hash.startsWith('#/quick-note'),
 );
 
 const CHROME_ROUTES = ['board', 'list', 'backlog', 'archive'];
@@ -39,16 +51,25 @@ async function reloadTickets() {
   await tickets.load();
 }
 
+async function reloadNotes() {
+  await notes.load();
+}
+
 function scopeToProject(key: string | null) {
   tickets.setFilter({ projects: key ? [key] : undefined });
+}
+
+function scopeToNotebook(key: string | null) {
+  notes.setFilter({ notebooks: key ? [key] : undefined });
 }
 
 async function boot() {
   try {
     await settings.load();
-    await projects.load();
-    await reloadTickets();
+    await Promise.all([projects.load(), notebooks.load()]);
+    await Promise.all([reloadTickets(), reloadNotes()]);
     scopeToProject(projects.activeKey);
+    scopeToNotebook(notebooks.activeKey);
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -82,25 +103,71 @@ function openQuickAdd() {
   void ptah.window.openQuickAdd(projects.activeKey ?? undefined);
 }
 
-/** Global Ctrl/Cmd+N → open the Quick Add window from any view. */
+/** Open (or focus) the standalone Quick Note window, preselecting the active notebook. */
+function openQuickNote() {
+  if (!notebooks.items.length) return;
+  void ptah.window.openQuickNote(notebooks.activeKey ?? undefined);
+}
+
+/** True when the keystroke is being typed into a text field / editable element. */
+function isTypingInto(node: EventTarget | null): boolean {
+  if (!(node instanceof HTMLElement)) return false;
+  if (node.isContentEditable) return true;
+  const tag = node.tagName.toLowerCase();
+  return tag === 'input' || tag === 'textarea' || tag === 'select';
+}
+
+/** A modal dialog is mounted in the shell — leave its inputs alone. */
+const dialogOpen = computed(() => showNew.value || showNewNote.value || updateInfo.value !== null);
+
+/**
+ * Global shortcuts:
+ *  - Ctrl/Cmd+N        → Quick Add (ticket)
+ *  - Ctrl/Cmd+Shift+N  → Quick Note
+ *  - Ctrl/Cmd+K or `/` → focus the top-bar search
+ *
+ * The search shortcuts never fire while the user is typing into a field or while
+ * a modal dialog is open — otherwise they would steal focus out of the field
+ * (Ctrl+K is "kill line" in native text inputs, and `/` is an ordinary
+ * character), which reads as a "frozen" text box.
+ */
 function onKeydown(e: KeyboardEvent) {
-  if (e.altKey || e.shiftKey || !(e.ctrlKey || e.metaKey)) return;
-  if (e.key.toLowerCase() !== 'n') return;
-  if (!projects.items.length) return;
+  const mod = e.ctrlKey || e.metaKey;
+  const key = e.key.toLowerCase();
+  const typing = isTypingInto(e.target) || isTypingInto(document.activeElement);
+
+  if (!typing && !dialogOpen.value) {
+    if (mod && !e.altKey && !e.shiftKey && key === 'k') {
+      e.preventDefault();
+      topBar.value?.focusSearch();
+      return;
+    }
+    if (key === '/' && !mod && !e.altKey && !e.shiftKey) {
+      e.preventDefault();
+      topBar.value?.focusSearch();
+      return;
+    }
+  }
+
+  if (!mod || e.altKey || key !== 'n' || dialogOpen.value) return;
   e.preventDefault();
-  openQuickAdd();
+  if (e.shiftKey) openQuickNote();
+  else openQuickAdd();
 }
 
 let unsubTicketsChanged: (() => void) | null = null;
+let unsubNotesChanged: (() => void) | null = null;
 onMounted(() => {
   if (isPopup.value) return;
   window.addEventListener('keydown', onKeydown);
-  // Another window (the Quick Add popup) created a ticket — refresh our lists.
+  // Another window (a quick-add popup) created a ticket / note — refresh lists.
   unsubTicketsChanged = ptah.events.onTicketsChanged(() => void reloadTickets());
+  unsubNotesChanged = ptah.events.onNotesChanged(() => void reloadNotes());
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown);
   unsubTicketsChanged?.();
+  unsubNotesChanged?.();
 });
 
 async function onProjectChange(key: string | null) {
@@ -113,13 +180,30 @@ async function onProjectCreated() {
   await reloadTickets();
   scopeToProject(projects.activeKey);
 }
+
+async function onNotebookChange(key: string | null) {
+  notebooks.setActive(key);
+  scopeToNotebook(key);
+  router.push('/notes');
+}
+
+async function onNotebookCreated() {
+  await reloadNotes();
+  scopeToNotebook(notebooks.activeKey);
+}
 </script>
 
 <template>
   <RouterView v-if="isPopup" />
 
   <div v-else class="shell">
-    <TopBar @new="showNew = true" @quick-add="openQuickAdd" />
+    <TopBar
+      ref="topBar"
+      @new="showNew = true"
+      @quick-add="openQuickAdd"
+      @new-note="showNewNote = true"
+      @quick-note="openQuickNote"
+    />
 
     <aside class="sidebar scroll-thin">
       <RouterLink to="/today" class="side-item today-item" active-class="active">
@@ -139,6 +223,20 @@ async function onProjectCreated() {
           :active="projects.activeKey"
           @change="onProjectChange"
           @created="onProjectCreated"
+        />
+      </div>
+
+      <div class="side-section">
+        <div class="side-label">NOTEBOOKS</div>
+        <RouterLink to="/notes" class="side-item" active-class="active">
+          <span class="name">All notes</span>
+          <span class="count">{{ notes.items.length }}</span>
+        </RouterLink>
+        <NotebookPicker
+          :notebooks="notebooks.orderedItems"
+          :active="notebooks.activeKey"
+          @change="onNotebookChange"
+          @created="onNotebookCreated"
         />
       </div>
 
@@ -176,6 +274,16 @@ async function onProjectCreated() {
       @saved="
         showNew = false;
         reloadTickets();
+      "
+    />
+
+    <NoteDialog
+      v-if="showNewNote"
+      :notebook-key="notebooks.activeKey"
+      @close="showNewNote = false"
+      @saved="
+        showNewNote = false;
+        reloadNotes();
       "
     />
 

@@ -1,11 +1,11 @@
 ---
 name: ptah
 description: >-
-  Work with Ptah — a local, offline, single-user ticket tracker where every ticket is a
-  Markdown file on disk. Use to generate importable Ptah ticket files, read or summarise a
-  ~/Ptah data folder, or move tickets between Ptah and another tracker (Jira, Linear,
-  GitHub Issues, and the like).
-version: 1.0.1
+  Work with Ptah — a local, offline, single-user ticket tracker where every ticket (and
+  every note) is a Markdown file on disk. Use to generate importable Ptah ticket files,
+  read or summarise a ~/Ptah data folder, or move tickets between Ptah and another tracker
+  (Jira, Linear, GitHub Issues, and the like).
+version: 1.1.0
 license: MIT
 ---
 
@@ -35,11 +35,12 @@ its MCP server aren't available.
 
 ## Compatibility
 
-This describes Ptah's on-disk format as of **Ptah v1.0.4**, verified against
+This describes Ptah's on-disk format as of **Ptah v1.0.5**, verified against
 `src/models/Ticket.ts`, `src/storage/TicketRepository.ts`, `src/storage/markdownFile.ts`,
-`src/models/Project.ts`, `src/shared/ids.ts`, `src/core/TicketService.ts`, and
-`src/core/ImportExportService.ts`. If the
-user's Ptah is much newer, re-check the field table below against the repo's `README.md`
+`src/models/Project.ts`, `src/models/Note.ts`, `src/models/Notebook.ts`,
+`src/storage/NoteRepository.ts`, `src/shared/ids.ts`, `src/core/TicketService.ts`,
+`src/core/NoteService.ts`, and `src/core/ImportExportService.ts`. If the
+user's Ptah is much newer, re-check the field tables below against the repo's `README.md`
 ("Where your data lives") and this skill's changelog at the end.
 
 The block below is the machine-checkable summary of the format; a drift test in the Ptah
@@ -47,13 +48,15 @@ repo (`test/skills/ptah-format.test.ts`) fails if it falls out of step with the 
 
 ```yaml
 # format-summary — checked by test/skills/ptah-format.test.ts. Keep in step with the code.
-skillVersion: 1.0.1
-verifiedAgainstPtah: 1.0.4
+skillVersion: 1.1.0
+verifiedAgainstPtah: 1.0.5
 frontmatterKeys: [id, title, project, type, parent, status, priority, created, due, labels, urls]
 statuses: [backlog, scheduled, wip, paused, done, archive]
 priorities: [lowest, low, medium, high, highest]
 types: [task, epic]
 projectYmlKeys: [key, name, counter, created]
+noteFrontmatterKeys: [id, title, notebook, created, updated, labels]
+notebookYmlKeys: [key, name, counter, created]
 idPattern: '^([A-Z][A-Z0-9]{1,9})-([1-9][0-9]*)$'
 ```
 
@@ -72,11 +75,18 @@ OS per-user config directory, **not** in the data folder.
 │     │  └─ <KEY>-<N>.md            one ticket per file; filename == ticket id
 │     └─ attachments/
 │        └─ <KEY>-<N>/              one folder per ticket, holds its attachment files
+├─ notebooks/
+│  └─ <KEY>/                        folder name == notebook key, e.g. NOTEBOOK, WORK
+│     ├─ notebook.yml               key, name, counter, created
+│     └─ notes/
+│        └─ <KEY>-<N>.md            one note per file; filename == note id
 └─ .recyclebin/
    ├─ tickets/
    │  └─ <KEY>-<N>.md               soft-deleted ticket, now carries a deletedAt field
-   └─ attachments/
-      └─ <KEY>-<N>/
+   ├─ attachments/
+   │  └─ <KEY>-<N>/
+   └─ notes/
+      └─ <KEY>-<N>.md               soft-deleted note, now carries a deletedAt field
 ```
 
 - **`project.yml`** keys, in order: `key` (uppercase, `^[A-Z][A-Z0-9]{1,9}$`, 2–10 chars),
@@ -152,6 +162,66 @@ urls:
 
 1. ...
 ```
+
+## Notebooks and notes
+
+Alongside tickets, Ptah keeps **notes** — free-form Markdown jottings with no
+status, priority, type, parent, due date, URLs, or attachments. Notes are grouped
+into **notebooks**, which work exactly like projects. Every Ptah install always
+has a notebook keyed `NOTEBOOK` (display name "notebook").
+
+- **`notebook.yml`** keys, in order: `key` (uppercase, `^[A-Z][A-Z0-9]{1,9}$`,
+  2–10 chars), `name` (non-empty), `counter` (last note number handed out),
+  `created` (ISO-8601). Same shape and rules as `project.yml`.
+- **Note ids** are `<KEY>-<N>` — the notebook key, a dash, a positive integer
+  (`NOTEBOOK-3`). Same pattern as ticket ids; notes and tickets never share a
+  lookup path, so an identical string in both trees is harmless.
+- A **note file** is YAML frontmatter then the Markdown body (the note text).
+  Ptah writes the frontmatter keys in this exact order:
+
+| Key | Value | Notes |
+|---|---|---|
+| `id` | `<KEY>-<N>` | reassigned if Ptah ever imports notes (no importer today) |
+| `title` | string | must be present and non-empty |
+| `notebook` | notebook key | must match an existing `notebooks/<KEY>/` |
+| `created` | ISO-8601 timestamp — **quote it** | |
+| `updated` | ISO-8601 timestamp — **quote it** | bumped on every edit |
+| `labels` | YAML list of strings | trimmed, blank-dropped, deduped case-insensitively, **sorted** on save |
+| `deletedAt` | ISO-8601 timestamp | **recycle bin only** |
+
+The parser is forgiving the same way tickets' is: a missing `title` falls back to
+the id, a bad `labels` value becomes `[]`, a missing `updated` copies `created`,
+and a file with no frontmatter loads as a note titled with its id.
+
+Canonical shape (exactly what Ptah writes, minus `deletedAt`):
+
+```markdown
+---
+id: NOTEBOOK-3
+title: Retro takeaways
+notebook: NOTEBOOK
+created: '2026-09-06T10:00:00.000Z'
+updated: '2026-09-06T10:00:00.000Z'
+labels:
+  - meeting
+  - retro
+---
+
+- Ship smaller PRs
+- ...
+```
+
+**Reading notes from a data folder:** live notes are
+`<dataDir>/notebooks/<KEY>/notes/*.md`; deleted notes are
+`<dataDir>/.recyclebin/notes/*.md` (with a `deletedAt`); notebooks are each
+`notebooks/<KEY>/notebook.yml`.
+
+**Import/export.** Ptah exports a single note as a `.md` and a whole notebook as
+a `.zip` (`notes/<ID>.md` entries), and imports either back into a chosen
+notebook — Settings → Import / export. Import always mints fresh ids from the
+target notebook's counter. There is **no MCP tool** for notes. To add notes
+outside the app without the importer, write the files directly and raise the
+notebook's `counter` to at least the highest number you used.
 
 ## Status and priority reference
 
@@ -362,6 +432,15 @@ working with.
 Versioning: **patch** = wording/clarification; **minor** = an additive format change (a new
 optional field, a new enum value); **major** = a breaking change (a renamed or removed
 field, changed semantics).
+
+### 1.1.0 — 2026-09-06
+
+Ptah v1.0.5 adds **notes and notebooks** — a second Markdown-file type under
+`notebooks/<KEY>/notes/` grouped by `notebook.yml`, plus a `.recyclebin/notes/`
+tree and note `.md` / notebook `.zip` import/export. New *Notebooks and notes*
+section; on-disk layout diagram updated; `format-summary` gains
+`noteFrontmatterKeys` and `notebookYmlKeys`. Additive — nothing about the ticket
+format changed.
 
 ### 1.0.1 — 2026-09-06
 

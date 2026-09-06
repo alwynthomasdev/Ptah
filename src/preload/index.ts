@@ -11,6 +11,7 @@ const api: PtahApi = {
     setTheme: (theme) => ipcRenderer.invoke(IPC.configSetTheme, theme),
     setDataDir: (dir) => ipcRenderer.invoke(IPC.configSetDataDir, dir),
     setDefaultProjectName: (name) => ipcRenderer.invoke(IPC.configSetDefaultProjectName, name),
+    setDefaultNotebookName: (name) => ipcRenderer.invoke(IPC.configSetDefaultNotebookName, name),
     pickDataDir: () => ipcRenderer.invoke(IPC.configPickDataDir),
   },
   projects: {
@@ -34,6 +35,27 @@ const api: PtahApi = {
     purge: (id) => ipcRenderer.invoke(IPC.binPurge, id),
     empty: () => ipcRenderer.invoke(IPC.binEmpty),
   },
+  notebooks: {
+    list: () => ipcRenderer.invoke(IPC.notebooksList),
+    create: (input) => ipcRenderer.invoke(IPC.notebooksCreate, input),
+    rename: (key, name) => ipcRenderer.invoke(IPC.notebooksRename, key, name),
+    delete: (key) => ipcRenderer.invoke(IPC.notebooksDelete, key),
+  },
+  notes: {
+    list: (notebookKey) => ipcRenderer.invoke(IPC.notesList, notebookKey),
+    get: (id) => ipcRenderer.invoke(IPC.notesGet, id),
+    create: (input) => ipcRenderer.invoke(IPC.notesCreate, input),
+    update: (id, patch) => ipcRenderer.invoke(IPC.notesUpdate, id, patch),
+    changeNotebook: (id, notebookKey) =>
+      ipcRenderer.invoke(IPC.notesChangeNotebook, id, notebookKey),
+    delete: (id) => ipcRenderer.invoke(IPC.notesDelete, id),
+  },
+  noteBin: {
+    list: () => ipcRenderer.invoke(IPC.noteBinList),
+    restore: (id) => ipcRenderer.invoke(IPC.noteBinRestore, id),
+    purge: (id) => ipcRenderer.invoke(IPC.noteBinPurge, id),
+    empty: () => ipcRenderer.invoke(IPC.noteBinEmpty),
+  },
   attachments: {
     add: (ticketId) => ipcRenderer.invoke(IPC.attachmentsAdd, ticketId),
     remove: (ticketId, filename) => ipcRenderer.invoke(IPC.attachmentsRemove, ticketId, filename),
@@ -44,6 +66,9 @@ const api: PtahApi = {
     exportTicket: (ticketId) => ipcRenderer.invoke(IPC.ioExportTicket, ticketId),
     exportProject: (projectKey, opts) => ipcRenderer.invoke(IPC.ioExportProject, projectKey, opts),
     import: (targetProjectKey) => ipcRenderer.invoke(IPC.ioImport, targetProjectKey),
+    exportNote: (noteId) => ipcRenderer.invoke(IPC.ioExportNote, noteId),
+    exportNotebook: (notebookKey) => ipcRenderer.invoke(IPC.ioExportNotebook, notebookKey),
+    importNotes: (targetNotebookKey) => ipcRenderer.invoke(IPC.ioImportNotes, targetNotebookKey),
   },
   system: {
     openExternal: (url) => ipcRenderer.invoke(IPC.systemOpenExternal, url),
@@ -70,12 +95,19 @@ const api: PtahApi = {
   window: {
     openQuickAdd: (projectKey) => ipcRenderer.invoke(IPC.windowOpenQuickAdd, projectKey),
     closeQuickAdd: () => ipcRenderer.invoke(IPC.windowCloseQuickAdd),
+    openQuickNote: (notebookKey) => ipcRenderer.invoke(IPC.windowOpenQuickNote, notebookKey),
+    closeQuickNote: () => ipcRenderer.invoke(IPC.windowCloseQuickNote),
   },
   events: {
     onTicketsChanged: (listener) => {
       const wrapped = () => listener();
       ipcRenderer.on(IPC.ticketsChanged, wrapped);
       return () => ipcRenderer.removeListener(IPC.ticketsChanged, wrapped);
+    },
+    onNotesChanged: (listener) => {
+      const wrapped = () => listener();
+      ipcRenderer.on(IPC.notesChanged, wrapped);
+      return () => ipcRenderer.removeListener(IPC.notesChanged, wrapped);
     },
   },
 };

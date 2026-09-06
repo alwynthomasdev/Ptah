@@ -26,8 +26,14 @@ Named after the ancient Egyptian creator god.
   Recycle Bin.
 - **Filtering & sorting** by title, labels, project and priority; sort by
   priority, created or due date.
-- **Recycle bin** for tickets (restore / purge / empty). Deleting a *project* is
-  permanent.
+- **Notes & notebooks** — free-form Markdown notes (title, body, labels only),
+  grouped into **notebooks** that work like projects, with a fixed default
+  notebook. A **Quick note** capture window (bottom-left, always-on-top) sits
+  next to Quick ticket, plus a `/notes` list and add/edit page.
+- **Unified search** — the top-bar search box spans every ticket *and* every
+  note, with results split into sections.
+- **Recycle bin** for tickets and notes (restore / purge / empty). Deleting a
+  *project* or a *notebook* is permanent.
 - **Import / export** — a single ticket as Markdown, or a `.zip` when it has
   attachments; a whole project as a `.zip` with or without attachments.
 - **Themes:** Light / Dark / System, persisted and applied before first paint.
@@ -57,18 +63,26 @@ Named after the ancient Egyptian creator god.
   three days, one week, two weeks, or one month from today.
 - **Recycle Bin** — soft-deleted tickets, with per-row **Restore** and **Purge**
   and an **Empty** action.
-- Pick the active project (or **All projects**) in the sidebar; the search box in
-  the top bar filters by title across the current scope.
+- Pick the active project (or **All projects**) in the sidebar. The top-bar
+  search box (**Ctrl/Cmd+K** or `/`) searches every ticket and note at once and
+  opens a **Search** view with a section for each; the per-view toolbar search on
+  List / Backlog / Archive still narrows just that table.
+- **Notes** — a `/notes` list (sort by updated / created / title), a `/note/:id`
+  add/edit page, and a **NOTEBOOKS** section in the sidebar mirroring projects.
 
 ### Creating tickets
 
-- **Quick add** (top-bar button, or **Ctrl/Cmd+N** from anywhere) is a minimal
+- **Quick ticket** (top-bar button, or **Ctrl/Cmd+N** from anywhere) is a minimal
   popup — just a title and a project. It stays open after each add and shows the
   new ticket's id, so you can capture a run of ideas without leaving the keyboard.
+- **Quick note** (top-bar button, or **Ctrl/Cmd+Shift+N**) is the equivalent for
+  notes — title, notebook, and a short body — in an always-on-top window parked
+  bottom-left.
 - **+ New ticket** opens the full dialog (type, parent, status, priority, due,
-  labels, links, Markdown description) for when a ticket needs detail up front.
-- Both default the project to the active one (falling back to the default `TODO`
-  project, then the first project).
+  labels, links, Markdown description) for when a ticket needs detail up front;
+  **+ New note** opens the note dialog (title, notebook, labels, Markdown body).
+- Both default the project / notebook to the active one (falling back to the
+  fixed default, then the first one).
 
 ### Filtering & sorting
 
@@ -134,10 +148,12 @@ ticket in it are removed, behind a confirmation.
 | One ticket, no attachments | `.md` (YAML frontmatter + body) |
 | One ticket with attachments | `.zip` (the `.md` + its attachments folder) |
 | A whole project | `.zip`, with an **Include attachments** toggle |
+| One note | `.md` (YAML frontmatter + body) |
+| A whole notebook | `.zip` (`notes/<id>.md` entries) |
 
-Import accepts one or more `.md` / `.zip` files and drops them into a project you
-choose. **Imported tickets always get fresh ids** from the target project's
-counter — importing never overwrites an existing ticket.
+Import accepts one or more `.md` / `.zip` files and drops them into a project (or
+notebook) you choose. **Imported tickets and notes always get fresh ids** from
+the target's counter — importing never overwrites an existing item.
 
 To turn a Jira (or other) export into importable files, hand
 [.claude/skills/ptah/SKILL.md](./.claude/skills/ptah/SKILL.md) to Claude — it
@@ -156,11 +172,18 @@ By default in `~/Ptah` (change it in **Settings**). Layout:
 │     │  └─ PTAH-1.md                # YAML frontmatter + Markdown body
 │     └─ attachments/
 │        └─ PTAH-1/…                 # files attached to that ticket
+├─ notebooks/
+│  └─ NOTEBOOK/
+│     ├─ notebook.yml                # key, name, counter, created
+│     └─ notes/
+│        └─ NOTEBOOK-1.md            # YAML frontmatter + Markdown body
 └─ .recyclebin/
    ├─ tickets/
    │  └─ PTAH-7.md                   # soft-deleted ticket (has a deletedAt field)
-   └─ attachments/
-      └─ PTAH-7/…                    # its attachments
+   ├─ attachments/
+   │  └─ PTAH-7/…                    # its attachments
+   └─ notes/
+      └─ NOTEBOOK-3.md               # soft-deleted note (has a deletedAt field)
 ```
 
 A ticket file:
@@ -195,6 +218,32 @@ parent.
 Recycled tickets additionally carry a `deletedAt: <iso>` field. `attachments` is
 **not** stored in frontmatter — it's derived from the ticket's `attachments/<id>/`
 folder when the ticket is read.
+
+A note file is simpler — `id`, `title`, `notebook`, `created`, `updated`,
+`labels`, then a Markdown body:
+
+```markdown
+---
+id: NOTEBOOK-1
+title: Retro takeaways
+notebook: NOTEBOOK
+created: 2026-09-06T10:00:00.000Z
+updated: 2026-09-06T10:00:00.000Z
+labels:
+  - meeting
+  - retro
+---
+
+- Ship smaller PRs
+- …
+```
+
+Notebooks work like projects — a fixed default notebook keyed `NOTEBOOK` always
+exists and its name is set in **Settings → Default notebook**; deleting any other
+notebook is permanent. Notes have no status, priority, type, parent, due date, or
+attachments. Deleting a note is a soft delete to `.recyclebin/notes/`. A single
+note exports as a `.md` and a whole notebook as a `.zip` (Settings →
+Import / export).
 
 **Local images.** A relative image link in a ticket's Markdown resolves to that
 ticket's attachments folder via the privileged `ptah-media://` scheme:

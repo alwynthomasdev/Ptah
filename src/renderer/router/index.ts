@@ -1,11 +1,13 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import QuickAddWindow from '../views/QuickAddWindow.vue';
+import QuickNoteWindow from '../views/QuickNoteWindow.vue';
 
 const routes = [
   { path: '/', redirect: '/board' },
-  // Static import (not lazy) so `route.name` resolves synchronously before
+  // Static imports (not lazy) so `route.name` resolves synchronously before
   // App.vue mounts — it branches the whole shell on this.
   { path: '/quick-add', name: 'quick-add', component: QuickAddWindow },
+  { path: '/quick-note', name: 'quick-note', component: QuickNoteWindow },
   {
     path: '/today',
     name: 'today',
@@ -36,6 +38,16 @@ const routes = [
     path: '/search',
     name: 'search',
     component: () => import('../views/SearchView.vue'),
+  },
+  {
+    path: '/notes',
+    name: 'notes',
+    component: () => import('../views/NotesListView.vue'),
+  },
+  {
+    path: '/note/:id',
+    name: 'note',
+    component: () => import('../views/NoteView.vue'),
   },
   {
     path: '/ticket/:id',

@@ -6,6 +6,37 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+Adds **notes and notebooks** — a second first-class Markdown-file type living
+next to tickets. A note is just a title, a Markdown body, and labels; notebooks
+group notes the way projects group tickets, and every install starts with one
+keyed `NOTEBOOK`. On disk they land under `notebooks/<KEY>/notes/<ID>.md` beside
+a `notebook.yml`, with their own `.recyclebin/notes/` subtree. The top bar gains
+a shared search box that finds tickets *and* notes at once.
+
+### Added — Notebooks
+- Notebooks are a notes-only mirror of projects: an uppercase key, a display name, and a per-notebook id counter in `notebooks/<KEY>/notebook.yml`. New `src/models/Notebook.ts` (`Notebook`, `createNotebook`, `DEFAULT_NOTEBOOK_KEY`), `src/storage/NotebookRepository.ts`, and `src/core/NotebookService.ts`; `AppContext.init()` now takes `(defaultProjectName, defaultNotebookName)` and ensures the default notebook alongside the default project.
+- A **NOTEBOOKS** sidebar section (`src/renderer/App.vue`) with an "All notes" link and a `NotebookPicker.vue` create/switch control, backed by a new `notebooks` Pinia store.
+- A **Default notebook** card in Settings (`src/renderer/views/SettingsView.vue`) renames the live `NOTEBOOK` notebook, and a **Notebooks** card deletes a notebook and all its notes behind a confirm — the default notebook is protected, mirroring project delete. New `config:setDefaultNotebookName` IPC and `AppConfig.defaultNotebookName` (`src/main/config.ts`, default `"Notebook"`, with field-by-field fallback).
+
+### Added — Notes
+- A note is one Markdown file — `id`, `title`, `notebook`, `created`, `updated`, `labels` frontmatter then the body — round-tripped by `noteToMarkdown` / `markdownToNote` in `src/storage/NoteRepository.ts` with the same forgiving parser as tickets. New `src/models/Note.ts` (`Note`, `NewNoteInput`, `NotePatch`, `createNote`, `applyNotePatch`) and `src/models/NoteFilter.ts` (`filterAndSortNotes`). New `FileStore` path helpers (`notebooksDir`, `notebookFile`, `notesDir`, `noteFile`, `recycledNotesDir` / `recycledNoteFile`, `recycledTicketsDir`).
+- Full note CRUD across the boundary: `notebooks:*`, `notes:*`, and `noteBin:*` IPC slices in `src/shared/ipc.ts` / `src/preload/index.ts` / `src/main/ipc.ts`, with a hand-rolled `notes:create` broadcasting a `notes:changed` event to other windows (mirroring `tickets:create`). New `NoteService`, `NoteRecycleBinService`, and `NoteImportExportService` in `src/core/`, wired by `AppContext`.
+- New renderer surface: `NotesListView.vue` (`/notes`), `NoteView.vue` (`/note/:id`), `NoteForm.vue` / `NoteList.vue` / `NoteDialog.vue`, and a `notes` Pinia store. The top bar's **Quick note** button and **+ New note** open a note the way **Quick ticket** / **+ New ticket** open a ticket.
+- **Standalone Quick Note window** (`src/main/quickNoteWindow.ts`, `QuickNoteWindow.vue` at `#/quick-note`): an always-on-top 420×340 capture window parked bottom-left, opened by **Ctrl/Cmd+Shift+N** or the top-bar button and closed with its main window. New `window:openQuickNote` / `window:closeQuickNote` IPC.
+- **Soft-delete for notes**: deleting a note moves its `.md` to `.recyclebin/notes/` with a `deletedAt` stamp. The Recycle Bin view (`src/renderer/views/RecycleBinView.vue`) gains a Notes section with restore / delete-forever, and "Empty bin" now clears both trees.
+- **Note import/export**: a single note exports as a `.md` and a whole notebook as a `.zip`, and either imports back into a chosen notebook (fresh ids from the target counter). `io:exportNote` / `io:exportNotebook` / `io:importNotes` IPC, an **Export…** action on `NoteView`, and Import / export rows in Settings.
+
+### Added — Unified search
+- The top bar carries a shared search box (`GlobalSearch.vue`) that queries tickets **and** notes at once, driven by a new `search` Pinia store; **Ctrl/Cmd+K** or `/` focuses it from any view. `SearchView.vue` is rebuilt as a two-section tickets + notes results page with a shared Labels facet, ticket-only Status / Priority / Project facets, and a notes-only Notebook facet. The per-view Toolbar search is unchanged.
+
+### Changed
+- Boot (`src/renderer/App.vue`) loads notebooks and notes alongside projects and tickets and subscribes to `notes:changed`, refreshing its lists when another window adds a note.
+- The Ptah skill (`.claude/skills/ptah/SKILL.md`) is bumped **1.0.1 → 1.1.0**: a new "Notebooks and notes" section, an updated on-disk layout diagram, `noteFrontmatterKeys` / `notebookYmlKeys` added to its `format-summary`, and `verifiedAgainstPtah: 1.0.5`. `README.md` documents notes throughout (features, data-layout tree, import/export table, quick-note and unified-search usage).
+
+### Fixed
+- **Modal dialog text fields felt read-only.** The global `Ctrl/Cmd+K` and `/` shortcuts stole focus out of dialog inputs — `Ctrl+K` is "kill line" in a native text field and `/` is an ordinary character — so typing in a dialog appeared to do nothing. The shortcuts are now suppressed while the user is typing into a field or while a modal dialog is open (`src/renderer/App.vue`).
+- **Emptying the ticket recycle bin wiped the notes bin too.** `RecycleBinService.empty()` removed the whole `.recyclebin/` folder; it is now scoped to the tickets subtree (`recycledTicketsDir()` plus `attachments/`) so the sibling notes bin is independent (`src/core/RecycleBinService.ts`).
+
 ## [1.0.5] - 2026-09-06
 
 Adds a one-way, create-only push from any ticket to Jira Cloud (Settings →

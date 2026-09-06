@@ -56,15 +56,39 @@ describe('loadConfig', () => {
     expect((await loadConfig()).defaultProjectName).toBe('To Do');
   });
 
+  it('falls back to the default when defaultNotebookName is absent, blank, or non-string', async () => {
+    const dflt = defaultConfig().defaultNotebookName;
+    await fs.writeFile(
+      configFile(),
+      JSON.stringify({ dataDir: '/somewhere/Ptah', theme: 'dark', defaultNotebookName: '' }),
+    );
+    expect((await loadConfig()).defaultNotebookName).toBe(dflt);
+
+    await fs.writeFile(
+      configFile(),
+      JSON.stringify({ dataDir: '/somewhere/Ptah', theme: 'dark', defaultNotebookName: 42 }),
+    );
+    expect((await loadConfig()).defaultNotebookName).toBe(dflt);
+
+    await fs.writeFile(configFile(), JSON.stringify({ dataDir: '/somewhere/Ptah', theme: 'dark' }));
+    expect((await loadConfig()).defaultNotebookName).toBe(dflt);
+  });
+
   it('keeps a valid persisted config', async () => {
     await fs.writeFile(
       configFile(),
-      JSON.stringify({ dataDir: '/somewhere/Ptah', theme: 'dark', defaultProjectName: 'Inbox' }),
+      JSON.stringify({
+        dataDir: '/somewhere/Ptah',
+        theme: 'dark',
+        defaultProjectName: 'Inbox',
+        defaultNotebookName: 'Journal',
+      }),
     );
     expect(await loadConfig()).toEqual({
       dataDir: '/somewhere/Ptah',
       theme: 'dark',
       defaultProjectName: 'Inbox',
+      defaultNotebookName: 'Journal',
     });
   });
 
@@ -79,7 +103,12 @@ describe('loadConfig', () => {
 
 describe('saveConfig', () => {
   it('round-trips through loadConfig and writes a trailing newline', async () => {
-    const cfg = { dataDir: '/data/Ptah', theme: 'light' as const, defaultProjectName: 'To Do' };
+    const cfg = {
+      dataDir: '/data/Ptah',
+      theme: 'light' as const,
+      defaultProjectName: 'To Do',
+      defaultNotebookName: 'Notebook',
+    };
     const returned = await saveConfig(cfg);
     expect(returned).toEqual(cfg);
     expect(await loadConfig()).toEqual(cfg);
@@ -88,7 +117,12 @@ describe('saveConfig', () => {
 
   it('creates the userData directory if it is missing', async () => {
     userData = path.join(userData, 'nested', 'deeper');
-    const cfg = { dataDir: '/data/Ptah', theme: 'system' as const, defaultProjectName: 'To Do' };
+    const cfg = {
+      dataDir: '/data/Ptah',
+      theme: 'system' as const,
+      defaultProjectName: 'To Do',
+      defaultNotebookName: 'Notebook',
+    };
     await saveConfig(cfg);
     expect(await loadConfig()).toEqual(cfg);
   });

@@ -17,7 +17,7 @@ export class RecycleBinService {
   ) {}
 
   async list(): Promise<Ticket[]> {
-    const names = await this.store.listFiles(`${this.store.recycleBinDir()}/tickets`, '.md');
+    const names = await this.store.listFiles(this.store.recycledTicketsDir(), '.md');
     const tickets: Ticket[] = [];
     for (const name of names) {
       const id = name.replace(/\.md$/i, '');
@@ -75,6 +75,8 @@ export class RecycleBinService {
   }
 
   async empty(): Promise<void> {
-    await this.store.remove(this.store.recycleBinDir());
+    // Scoped to the tickets subtree so the sibling notes bin is left intact.
+    await this.store.remove(this.store.recycledTicketsDir());
+    await this.store.remove(`${this.store.recycleBinDir()}/attachments`);
   }
 }
