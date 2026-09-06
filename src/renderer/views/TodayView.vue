@@ -23,6 +23,11 @@ async function exportTicket(t: Ticket) {
   await call(ptah.io.exportTicket(t.id));
 }
 
+async function setDue(t: Ticket, iso: string) {
+  await tickets.update(t.id, { due: iso });
+  emit('changed');
+}
+
 function open(t: Ticket) {
   router.push({ name: 'ticket', params: { id: t.id } });
 }
@@ -40,10 +45,12 @@ function open(t: Ticket) {
     <TicketList
       :tickets="rows"
       variant="list"
+      :show-snooze="true"
       empty="Nothing due today. 🎉"
       @open="open"
       @remove="remove"
       @export="exportTicket"
+      @set-due="setDue"
     />
   </section>
 </template>

@@ -2,7 +2,7 @@
 import { ref, type CSSProperties } from 'vue';
 import type { Priority, Ticket } from '@models/Ticket';
 import { PRIORITIES, PRIORITY_LABELS, STATUS_LABELS } from '@models/Ticket';
-import { formatDate, isOverdue } from '@shared/dates';
+import { addToDate, formatDate, formatDueRelative, todayIso } from '@shared/dates';
 
 const props = defineProps<{
   tickets: Ticket[];
@@ -14,12 +14,15 @@ const props = defineProps<{
    */
   variant: 'list' | 'backlog' | 'archive';
   empty?: string;
+  /** Show the per-row "snooze" menu that bumps the due date (Today view). */
+  showSnooze?: boolean;
 }>();
 const emit = defineEmits<{
   open: [ticket: Ticket];
   remove: [ticket: Ticket];
   export: [ticket: Ticket];
   setPriority: [ticket: Ticket, priority: Priority];
+  setDue: [ticket: Ticket, iso: string];
 }>();
 
 const dateHeading = props.variant === 'list' ? 'Due' : 'Created';
@@ -30,6 +33,28 @@ const priorityMenuFor = ref<string | null>(null);
 function choosePriority(t: Ticket, priority: Priority) {
   priorityMenuFor.value = null;
   if (priority !== t.priority) emit('setPriority', t, priority);
+}
+
+/** Id of the ticket whose snooze menu is open, or null. */
+const dueMenuFor = ref<string | null>(null);
+
+/** Snooze presets — all measured from today, not the current due date. */
+const SNOOZE: { label: string; d: { days?: number; months?: number } }[] = [
+  { label: 'Tomorrow', d: { days: 1 } },
+  { label: 'In 3 days', d: { days: 3 } },
+  { label: 'In 1 week', d: { days: 7 } },
+  { label: 'In 2 weeks', d: { days: 14 } },
+  { label: 'In 1 month', d: { months: 1 } },
+];
+
+function chooseDue(t: Ticket, d: { days?: number; months?: number }) {
+  dueMenuFor.value = null;
+  emit('setDue', t, addToDate(todayIso(), d));
+}
+
+/** Relative due label + tone for a row, computed once. */
+function due(t: Ticket) {
+  return formatDueRelative(t.due);
 }
 
 function pillStyle(t: Ticket): CSSProperties {
@@ -94,9 +119,40 @@ function pillStyle(t: Ticket): CSSProperties {
         <td
           v-if="variant === 'list'"
           class="due"
-          :class="{ overdue: isOverdue(t.due) }"
+          :class="{
+            'due--overdue': due(t).tone === 'overdue',
+            'due--soon': due(t).tone === 'soon',
+          }"
+          :title="formatDate(t.due)"
         >
-          {{ formatDate(t.due) }}
+          <template v-if="t.due">
+            <span class="due-cal" aria-hidden="true">📅</span>
+            <span class="due-text">{{ due(t).text }}</span>
+          </template>
+          <span v-if="showSnooze" class="snooze" @click.stop>
+            <button
+              type="button"
+              class="snooze-btn"
+              :aria-label="`Snooze ${t.id}`"
+              @click="dueMenuFor = dueMenuFor === t.id ? null : t.id"
+            >
+              ▾
+            </button>
+            <template v-if="dueMenuFor === t.id">
+              <div class="menu-backdrop" @click="dueMenuFor = null" />
+              <div class="menu">
+                <button
+                  v-for="opt in SNOOZE"
+                  :key="opt.label"
+                  type="button"
+                  class="menu-opt"
+                  @click="chooseDue(t, opt.d)"
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
+            </template>
+          </span>
         </td>
         <td v-else>{{ formatDate(t.created) }}</td>
         <td class="col-actions">
@@ -232,11 +288,46 @@ function pillStyle(t: Ticket): CSSProperties {
   font-weight: 600;
 }
 .due {
+  position: relative;
   color: var(--text-faint);
   white-space: nowrap;
 }
-.due.overdue {
+.due-cal {
+  margin-right: 5px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+.due--soon {
+  color: var(--p-high);
+  font-weight: 600;
+}
+.due--overdue {
   color: var(--p-highest);
+  font-weight: 600;
+}
+.snooze {
+  position: relative;
+  margin-left: 6px;
+}
+.snooze-btn {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+}
+.list-table tbody tr:hover .snooze-btn,
+.snooze-btn:focus-visible {
+  opacity: 1;
+}
+.snooze-btn:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
 }
 .col-id {
   width: 1%;

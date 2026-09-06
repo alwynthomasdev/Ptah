@@ -14,6 +14,10 @@ All notable changes to Ptah are documented here. The format follows
 - New `.claude/agents/jira.md` subagent (owns `src/jira` and the `jira:*` IPC slice) and `docs/jira-integration.md` guide; `README.md` and `CLAUDE.md` updated to reference both, and `CLAUDE.md` now lists explicit `mcp` and `jira` subagents alongside `core-data`.
 - Tests: `test/jira/{mapping,client,config,integration}.test.ts` and `test/renderer/JiraPushDialog.test.ts`.
 
+### Added — Due dates
+- **Prominent, relative due dates in the List view.** The **Due** column now reads relative to today — a calendar icon plus "Tomorrow" / "In 3 days" / "2 days overdue" wording — turning amber when a ticket is due within three days and red once it's overdue; dates more than a fortnight away fall back to the absolute form. New `formatDueRelative` / `addToDate` helpers in `src/shared/dates.ts`, rendered by `TicketList.vue`.
+- **A per-row snooze menu on the Today view.** Each row gains a menu that pushes the ticket's due date to tomorrow, +3 days, +1 week, +2 weeks, or +1 month — all measured from today, not the ticket's current due date — via `TodayView.vue` → `TicketList`'s `set-due` emit → `tickets.update({ due })`.
+
 ## [1.0.4] - 2026-09-06
 
 Fixes a parent picker that could get stuck open, and tightens the epic /

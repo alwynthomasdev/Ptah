@@ -49,7 +49,12 @@ Named after the ancient Egyptian creator god.
   tray. Drag a ticket card onto another lane (or the tray) to change its status;
   the new status is written to the ticket's file immediately.
 - **List / Backlog / Archive** — tables of every ticket, of `backlog` tickets,
-  and of `archive` tickets respectively.
+  and of `archive` tickets respectively. In the List view the **Due** column reads
+  relative to today ("Tomorrow", "In 3 days", "2 days overdue"), amber when due
+  within three days and red once overdue.
+- **Today** — open tickets due today or earlier, across every project, overdue
+  first. Each row has a **snooze** control that pushes the due date to tomorrow,
+  three days, one week, two weeks, or one month from today.
 - **Recycle Bin** — soft-deleted tickets, with per-row **Restore** and **Purge**
   and an **Empty** action.
 - Pick the active project (or **All projects**) in the sidebar; the search box in
