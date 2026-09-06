@@ -6,6 +6,14 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-09-06
+
+Adds a one-way, create-only push from any ticket to Jira Cloud (Settings →
+"Jira integration"), turning a Ptah ticket into a Jira issue and linking the two.
+Also makes due dates first-class: the List view's **Due** column now reads
+relative to today and is colour-coded by urgency, and the Today view can snooze a
+ticket's due date forward by a preset.
+
 ### Added — Jira integration
 - One-way, create-only push to Jira Cloud: a **Push to Jira…** button on the ticket detail view (`src/renderer/views/TicketView.vue`, via `JiraPushDialog.vue`) picks a Jira project and issue type, then creates a Jira Cloud issue from the ticket's title, description, and priority and appends the new issue's `…/browse/<KEY>` URL to the ticket's `urls`. No pull, no sync, no status — pushing twice just adds another link. If the target project's create screen has no priority field, the push retries once without it.
 - A "Jira integration" card in Settings (`src/renderer/views/SettingsView.vue`) takes a base URL, account email, and API token, with Test connection (`GET /rest/api/2/myself`) and Disconnect actions. The token is encrypted with Electron `safeStorage` (OS keychain — DPAPI / Keychain / libsecret) and stored in `userData/jira.json`, deliberately separate from `config.json` (plaintext, and also read by the MCP server); the renderer only ever sees a `connected` boolean, never the token.
