@@ -16,6 +16,8 @@ import TicketForm from '../components/TicketForm.vue';
 import type { TicketFormModel } from '../lib/ticketForm';
 import AttachmentList from '../components/AttachmentList.vue';
 import MarkdownView from '../components/MarkdownView.vue';
+import JiraPushDialog from '../components/JiraPushDialog.vue';
+import type { JiraPushResult } from '@shared/ipc';
 
 const route = useRoute();
 const router = useRouter();
@@ -166,6 +168,15 @@ async function exportTicket() {
 function openUrl(url: string) {
   void ptah.system.openExternal(url);
 }
+
+const showJiraPush = ref(false);
+const jiraPushMsg = ref<string | null>(null);
+
+async function onJiraPushed(result: JiraPushResult) {
+  showJiraPush.value = false;
+  jiraPushMsg.value = `Created ${result.issueKey} in Jira.`;
+  await load();
+}
 </script>
 
 <template>
@@ -181,9 +192,21 @@ function openUrl(url: string) {
         <button class="ghost" @click="router.back()">← Back</button>
         <span class="spacer" />
         <button v-if="mode === 'preview'" class="ghost" @click="exportTicket">Export…</button>
+        <button v-if="mode === 'preview'" class="ghost" @click="showJiraPush = true">
+          Push to Jira…
+        </button>
         <button v-if="mode === 'preview'" class="ghost" @click="startEdit">Edit</button>
         <button v-if="mode === 'preview'" class="ghost danger" @click="remove">Delete</button>
       </header>
+
+      <p v-if="jiraPushMsg" class="muted small jira-msg">{{ jiraPushMsg }}</p>
+
+      <JiraPushDialog
+        v-if="showJiraPush && ticket"
+        :ticket="ticket"
+        @close="showJiraPush = false"
+        @pushed="onJiraPushed"
+      />
 
       <div class="card block">
         <template v-if="mode === 'preview'">
@@ -378,6 +401,12 @@ function openUrl(url: string) {
 }
 .pad {
   padding: 24px 0;
+}
+.small {
+  font-size: var(--fs-sm);
+}
+.jira-msg {
+  margin: -6px 0 0;
 }
 .err {
   color: var(--danger);

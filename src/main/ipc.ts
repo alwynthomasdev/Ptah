@@ -8,7 +8,8 @@ import { setDataDir } from './appState';
 import { closeQuickAddWindow, openQuickAddWindow } from './quickAddWindow';
 import { checkForUpdate, downloadUpdate, installUpdate } from './updater';
 import { connect as claudeConnect, detect as claudeDetect, disconnect as claudeDisconnect } from '../mcp/integration';
-import type { ClaudeTarget } from '@shared/ipc';
+import * as jira from '../jira/integration';
+import type { ClaudeTarget, JiraSettingsInput } from '@shared/ipc';
 
 /**
  * Registers every IPC handler once, at startup. Each handler wraps its work in
@@ -211,6 +212,17 @@ export async function registerIpc(): Promise<void> {
   h(IPC.claudeDetect, () => claudeDetect());
   h(IPC.claudeConnect, (target) => claudeConnect(target as ClaudeTarget));
   h(IPC.claudeDisconnect, (target) => claudeDisconnect(target as ClaudeTarget));
+
+  // ---- Jira integration ---------------------------------------------
+  h(IPC.jiraGetSettings, () => jira.getSettings());
+  h(IPC.jiraSaveSettings, (input) => jira.saveSettings(input as JiraSettingsInput));
+  h(IPC.jiraClearSettings, () => jira.clearSettings());
+  h(IPC.jiraTestConnection, () => jira.testConnection());
+  h(IPC.jiraListProjects, (query) => jira.listProjects(query ? String(query) : undefined));
+  h(IPC.jiraListIssueTypes, (projectId) => jira.listIssueTypes(String(projectId)));
+  h(IPC.jiraPushTicket, (id, opts) =>
+    jira.pushTicket(context, String(id), opts as { projectId: string; issueTypeId: string }),
+  );
 
   // ---- windows -----------------------------------------------------
   h(IPC.windowOpenQuickAdd, (projectKey) =>

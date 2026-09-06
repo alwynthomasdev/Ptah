@@ -4,12 +4,14 @@ import type { ClaudeDetectResult, ClaudeTarget, UpdateInfo } from '@shared/ipc';
 import { DEFAULT_PROJECT_KEY } from '@models/Project';
 import { useSettingsStore } from '../stores/settings';
 import { useProjectsStore } from '../stores/projects';
+import { useJiraStore } from '../stores/jira';
 import { call, ptah } from '../api';
 import ThemeToggle from '../components/ThemeToggle.vue';
 
 const emit = defineEmits<{ changed: [] }>();
 const settings = useSettingsStore();
 const projects = useProjectsStore();
+const jira = useJiraStore();
 const busy = ref(false);
 
 const firstKey = projects.activeKey ?? projects.items[0]?.key ?? '';
@@ -150,9 +152,79 @@ async function toggleClaude(target: ClaudeTarget) {
   }
 }
 
-onMounted(() => {
+// --- Jira integration ------------------------------------------------------
+const jiraBaseUrl = ref('');
+const jiraEmail = ref('');
+const jiraToken = ref('');
+const jiraBusy = ref(false);
+const jiraTesting = ref(false);
+const jiraErr = ref<string | null>(null);
+const jiraMsg = ref<string | null>(null);
+
+function syncJiraInputs() {
+  jiraBaseUrl.value = jira.settings?.baseUrl ?? '';
+  jiraEmail.value = jira.settings?.email ?? '';
+  jiraToken.value = '';
+}
+
+async function saveJira() {
+  jiraBusy.value = true;
+  jiraErr.value = null;
+  jiraMsg.value = null;
+  try {
+    await jira.save({
+      baseUrl: jiraBaseUrl.value.trim(),
+      email: jiraEmail.value.trim(),
+      token: jiraToken.value.trim() || undefined,
+    });
+    syncJiraInputs();
+    jiraMsg.value = 'Saved.';
+  } catch (e) {
+    jiraErr.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    jiraBusy.value = false;
+  }
+}
+
+async function testJira() {
+  jiraTesting.value = true;
+  jiraErr.value = null;
+  jiraMsg.value = null;
+  try {
+    const status = await jira.test();
+    if (status.ok) jiraMsg.value = `Connected as ${status.displayName ?? 'Jira user'}.`;
+    else jiraErr.value = status.error ?? 'Connection failed.';
+  } catch (e) {
+    jiraErr.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    jiraTesting.value = false;
+  }
+}
+
+async function disconnectJira() {
+  jiraBusy.value = true;
+  jiraErr.value = null;
+  jiraMsg.value = null;
+  try {
+    await jira.clear();
+    syncJiraInputs();
+    jiraMsg.value = 'Disconnected.';
+  } catch (e) {
+    jiraErr.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    jiraBusy.value = false;
+  }
+}
+
+onMounted(async () => {
   // Claude / MCP integration hidden for now — see note above. Re-enable with:
   // refreshClaudeStatus();
+  try {
+    await jira.load();
+    syncJiraInputs();
+  } catch {
+    /* leave the Jira card in its unconfigured state */
+  }
 });
 
 const checking = ref(false);
@@ -272,10 +344,10 @@ async function installUpdate() {
 
       <p class="muted small">
         Connecting registers Ptah as an MCP server so Claude can read, create, edit, and delete your
-        tickets directly. Syncing with other tools (e.g. Jira) is not something Ptah does — Claude can
-        do that itself if it has other MCP servers connected. If Ptah's window is open while Claude
-        edits a ticket, this window won't automatically refresh yet — switch views or reload to see
-        the change.
+        tickets directly. Two-way syncing with other trackers is not something Ptah does (the Jira
+        integration below is a one-way push) — Claude can sync itself if it has other MCP servers
+        connected. If Ptah's window is open while Claude edits a ticket, this window won't
+        automatically refresh yet — switch views or reload to see the change.
       </p>
     </div>
 
@@ -361,6 +433,64 @@ async function installUpdate() {
           <code>.zip</code>. Import accepts either and always creates new ticket ids.
         </p>
       </template>
+    </div>
+
+    <div class="card block">
+      <h3>Jira integration</h3>
+      <p class="muted small">
+        Push a ticket's title, description, and priority to a new Jira Cloud issue with the
+        <strong>Push to Jira…</strong> button on the ticket; the new issue's link is added back to the
+        ticket. One-way only — see <code>docs/jira-integration.md</code>. Create an API token at
+        <a
+          href="#"
+          @click.prevent="
+            call(ptah.system.openExternal('https://id.atlassian.com/manage-profile/security/api-tokens'))
+          "
+          >id.atlassian.com</a
+        >.
+      </p>
+
+      <div class="io-row">
+        <label class="io-field">
+          Base URL
+          <input v-model="jiraBaseUrl" type="url" placeholder="https://your-org.atlassian.net" />
+        </label>
+      </div>
+      <div class="io-row">
+        <label class="io-field">
+          Account email
+          <input v-model="jiraEmail" type="email" placeholder="you@example.com" />
+        </label>
+      </div>
+      <div class="io-row">
+        <label class="io-field">
+          API token
+          <input
+            v-model="jiraToken"
+            type="password"
+            autocomplete="off"
+            :placeholder="jira.settings?.connected ? '•••••••••• (saved — leave blank to keep)' : ''"
+          />
+        </label>
+      </div>
+
+      <div class="io-row">
+        <button :disabled="jiraBusy || !jiraBaseUrl.trim() || !jiraEmail.trim()" @click="saveJira">
+          {{ jiraBusy ? 'Saving…' : 'Save' }}
+        </button>
+        <button :disabled="jiraTesting || !jira.settings?.connected" @click="testJira">
+          {{ jiraTesting ? 'Testing…' : 'Test connection' }}
+        </button>
+        <button
+          class="ghost small danger"
+          :disabled="jiraBusy || !jira.settings?.connected"
+          @click="disconnectJira"
+        >
+          Disconnect
+        </button>
+      </div>
+      <p v-if="jiraMsg" class="muted small">{{ jiraMsg }}</p>
+      <p v-if="jiraErr" class="err small">{{ jiraErr }}</p>
     </div>
 
     <div class="card block">

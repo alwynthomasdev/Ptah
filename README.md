@@ -36,6 +36,10 @@ Named after the ancient Egyptian creator god.
   [docs/claude-integration.md](./docs/claude-integration.md). For bulk import and
   migrating to/from other trackers there's a downloadable skill,
   [.claude/skills/ptah/SKILL.md](./.claude/skills/ptah/SKILL.md).
+- **Jira integration** — push a ticket's title, description, and priority to a new Jira
+  Cloud issue from Settings + a **Push to Jira…** button on each ticket; the new issue's
+  link is written back. One-way only. See
+  [docs/jira-integration.md](./docs/jira-integration.md).
 
 ## Usage
 
@@ -113,6 +117,10 @@ ticket in it are removed, behind a confirmation.
   [docs/claude-integration.md](./docs/claude-integration.md) for what it does, how to set
   it up, and its limitations. That page also links the downloadable
   [Ptah skill](./.claude/skills/ptah/SKILL.md) for bulk import and tracker migration.
+- **Jira integration** — store Jira Cloud credentials (base URL, email, API token — the
+  token is kept in the OS secure store) to enable the **Push to Jira…** button on each
+  ticket. One-way push of title, description, and priority; see
+  [docs/jira-integration.md](./docs/jira-integration.md).
 
 ## Import / export
 
@@ -196,7 +204,9 @@ Resolution is guarded against path escape (`..`, absolute paths, NUL).
 **App config.** The data-folder path and the theme live in
 `config.json` in Electron's per-user config directory (`%APPDATA%\Ptah` on
 Windows, `~/Library/Application Support/Ptah` on macOS, `~/.config/Ptah` on
-Linux) — everything else lives in the data folder itself.
+Linux) — everything else lives in the data folder itself. If you set up the Jira
+integration, its base URL, email, and OS-encrypted API token live beside it in
+`jira.json`.
 
 ## Development
 

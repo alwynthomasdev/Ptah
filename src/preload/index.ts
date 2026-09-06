@@ -58,6 +58,15 @@ const api: PtahApi = {
     connect: (target) => ipcRenderer.invoke(IPC.claudeConnect, target),
     disconnect: (target) => ipcRenderer.invoke(IPC.claudeDisconnect, target),
   },
+  jira: {
+    getSettings: () => ipcRenderer.invoke(IPC.jiraGetSettings),
+    saveSettings: (input) => ipcRenderer.invoke(IPC.jiraSaveSettings, input),
+    clearSettings: () => ipcRenderer.invoke(IPC.jiraClearSettings),
+    testConnection: () => ipcRenderer.invoke(IPC.jiraTestConnection),
+    listProjects: (query) => ipcRenderer.invoke(IPC.jiraListProjects, query),
+    listIssueTypes: (projectId) => ipcRenderer.invoke(IPC.jiraListIssueTypes, projectId),
+    pushTicket: (ticketId, opts) => ipcRenderer.invoke(IPC.jiraPushTicket, ticketId, opts),
+  },
   window: {
     openQuickAdd: (projectKey) => ipcRenderer.invoke(IPC.windowOpenQuickAdd, projectKey),
     closeQuickAdd: () => ipcRenderer.invoke(IPC.windowCloseQuickAdd),

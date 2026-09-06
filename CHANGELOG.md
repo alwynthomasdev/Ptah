@@ -6,6 +6,14 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+### Added — Jira integration
+- One-way, create-only push to Jira Cloud: a **Push to Jira…** button on the ticket detail view (`src/renderer/views/TicketView.vue`, via `JiraPushDialog.vue`) picks a Jira project and issue type, then creates a Jira Cloud issue from the ticket's title, description, and priority and appends the new issue's `…/browse/<KEY>` URL to the ticket's `urls`. No pull, no sync, no status — pushing twice just adds another link. If the target project's create screen has no priority field, the push retries once without it.
+- A "Jira integration" card in Settings (`src/renderer/views/SettingsView.vue`) takes a base URL, account email, and API token, with Test connection (`GET /rest/api/2/myself`) and Disconnect actions. The token is encrypted with Electron `safeStorage` (OS keychain — DPAPI / Keychain / libsecret) and stored in `userData/jira.json`, deliberately separate from `config.json` (plaintext, and also read by the MCP server); the renderer only ever sees a `connected` boolean, never the token.
+- New segregated `src/jira/**` layer: `mapping.ts` (pure Ptah→Jira field mapping — priority scale, `buildCreateFields`, browse-URL helpers; no I/O), `client.ts` (a `fetch`-based Jira REST v2 client with an `AbortController` timeout and unpacked error messages — no new dependency), `config.ts` (the encrypted `jira.json` token store), and `integration.ts` (the main-process entry, the only file `src/main/ipc.ts` imports). `mapping.ts` and `client.ts` stay `electron`-free so they unit-test without Electron; `src/jira/**` is added to `tsconfig.node.json`.
+- New `window.ptah.jira.*` IPC surface — the `jira:*` channel slice defined in `src/shared/ipc.ts` and wired through `src/preload/index.ts` and `src/main/ipc.ts`: `getSettings` / `saveSettings` / `clearSettings` / `testConnection` / `listProjects` / `listIssueTypes` / `pushTicket`, fronted by a new `jira` Pinia store (`src/renderer/stores/jira.ts`).
+- New `.claude/agents/jira.md` subagent (owns `src/jira` and the `jira:*` IPC slice) and `docs/jira-integration.md` guide; `README.md` and `CLAUDE.md` updated to reference both, and `CLAUDE.md` now lists explicit `mcp` and `jira` subagents alongside `core-data`.
+- Tests: `test/jira/{mapping,client,config,integration}.test.ts` and `test/renderer/JiraPushDialog.test.ts`.
+
 ## [1.0.4] - 2026-09-06
 
 Fixes a parent picker that could get stuck open, and tightens the epic /

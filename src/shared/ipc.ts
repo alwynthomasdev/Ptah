@@ -29,6 +29,54 @@ export interface ClaudeDetectResult {
   desktop: ClaudeStatus;
 }
 
+/**
+ * Jira integration (one-way push to Jira Cloud). Canonical definitions —
+ * `src/jira/integration.ts` imports these. The API token is never part of any
+ * type crossing the boundary; the renderer only learns whether one is stored
+ * via {@link JiraSettings.connected}.
+ */
+export interface JiraSettings {
+  /** Site base URL, e.g. `https://your-org.atlassian.net`. Empty until configured. */
+  baseUrl: string;
+  /** Atlassian account email used for Basic auth. Empty until configured. */
+  email: string;
+  /** True when an API token is stored (encrypted) on disk. */
+  connected: boolean;
+}
+
+/** What the Settings form sends. Omit or empty `token` to keep the stored one. */
+export interface JiraSettingsInput {
+  baseUrl: string;
+  email: string;
+  token?: string;
+}
+
+/** Result of a live `GET /myself` credential check. */
+export interface JiraConnectionStatus {
+  ok: boolean;
+  /** Display name of the authenticated Atlassian user, when `ok`. */
+  displayName?: string;
+  /** Human-readable failure reason, when not `ok`. */
+  error?: string;
+}
+
+export interface JiraProject {
+  id: string;
+  key: string;
+  name: string;
+}
+
+export interface JiraIssueType {
+  id: string;
+  name: string;
+}
+
+/** Outcome of a successful push: the created issue's key and browse URL. */
+export interface JiraPushResult {
+  issueKey: string;
+  url: string;
+}
+
 /** IPC channel names. One place so preload and main can't drift. */
 export const IPC = {
   configGet: 'config:get',
@@ -75,6 +123,14 @@ export const IPC = {
   claudeDetect: 'claude:detect',
   claudeConnect: 'claude:connect',
   claudeDisconnect: 'claude:disconnect',
+
+  jiraGetSettings: 'jira:getSettings',
+  jiraSaveSettings: 'jira:saveSettings',
+  jiraClearSettings: 'jira:clearSettings',
+  jiraTestConnection: 'jira:testConnection',
+  jiraListProjects: 'jira:listProjects',
+  jiraListIssueTypes: 'jira:listIssueTypes',
+  jiraPushTicket: 'jira:pushTicket',
 
   windowOpenQuickAdd: 'window:openQuickAdd',
   windowCloseQuickAdd: 'window:closeQuickAdd',
@@ -152,6 +208,28 @@ export interface PtahApi {
     connect(target: ClaudeTarget): Promise<Result<ClaudeStatus>>;
     /** Unregister Ptah's MCP server from the given target. */
     disconnect(target: ClaudeTarget): Promise<Result<ClaudeStatus>>;
+  };
+  jira: {
+    /** Stored base URL / email, and whether a token is saved. No network call. */
+    getSettings(): Promise<Result<JiraSettings>>;
+    /** Persist base URL / email, and the token when a non-empty one is given. */
+    saveSettings(input: JiraSettingsInput): Promise<Result<JiraSettings>>;
+    /** Forget the stored credentials (including the token). */
+    clearSettings(): Promise<Result<JiraSettings>>;
+    /** Verify the stored credentials against `GET /rest/api/2/myself`. */
+    testConnection(): Promise<Result<JiraConnectionStatus>>;
+    /** Jira projects visible to the authenticated user, optionally filtered. */
+    listProjects(query?: string): Promise<Result<JiraProject[]>>;
+    /** Non-subtask issue types available for the given Jira project id. */
+    listIssueTypes(projectId: string): Promise<Result<JiraIssueType[]>>;
+    /**
+     * Create a Jira issue from the ticket's title, description, and priority,
+     * then append the new issue's browse URL to the ticket's `urls`.
+     */
+    pushTicket(
+      ticketId: string,
+      opts: { projectId: string; issueTypeId: string },
+    ): Promise<Result<JiraPushResult>>;
   };
   window: {
     /** Open (or focus) the standalone Quick Add window, optionally preselecting a project. */

@@ -9,7 +9,8 @@ ticket tracking. Every ticket is a Markdown file on disk (`~/Ptah` by default),
 so the storage format is a first-class, portable artifact — not an implementation
 detail. See `README.md` for the on-disk layout and `spec.md` for the full
 product spec. See `docs/claude-integration.md` for the Claude Code/Desktop MCP
-integration (Settings → "Claude integration").
+integration (Settings → "Claude integration") and `docs/jira-integration.md`
+for the one-way push to Jira Cloud (Settings → "Jira integration").
 
 The build is delivered in milestones; the plan and current milestone status live
 in `~/.claude/plans/read-spec-md-plan-the-eager-babbage.md` and `CHANGELOG.md`.
@@ -32,10 +33,11 @@ light values on `:root` with dark under `:root[data-theme='dark']`, and
 
 Work is divided across `.claude/agents/`: **`ui`** (`src/renderer`),
 **`core-data`** (`src/models` / `src/shared` / `src/storage` / `src/core` /
-`src/main` / `src/preload`), **`tester`** (`test/`), **`docs`** (README + guides),
-and **`git-manager`** (all git + `CHANGELOG.md` + releases). Each works freely
-within its lane and passes `typecheck`/`lint`/`test`; none commits — that routes
-through `git-manager`.
+`src/main` / `src/preload`), **`mcp`** (`src/mcp` + the `claude:*` IPC slice),
+**`jira`** (`src/jira` + the `jira:*` IPC slice), **`tester`** (`test/`),
+**`docs`** (README + guides), and **`git-manager`** (all git + `CHANGELOG.md` +
+releases). Each works freely within its lane and passes
+`typecheck`/`lint`/`test`; none commits — that routes through `git-manager`.
 
 ## The Ptah skill
 
