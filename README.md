@@ -17,9 +17,9 @@ Named after the ancient Egyptian creator god.
 - Multiple **projects**; every ticket belongs to one.
 - **Tickets** with id, title, project, type, parent, status, priority,
   created/due dates, labels, a Markdown description, and attachments.
-- **Types:** Task or Epic. Any ticket can be the **parent** of others (its
-  sub-tasks), and a parent may live in a different project. Nesting is two
-  levels deep.
+- **Types:** Task or Epic. An **Epic** is the **parent** of its sub-tasks; only
+  a Task can be given a parent, and only an Epic can be one. The parent may live
+  in a different project. Nesting is exactly two levels: Epic → Task.
 - **Statuses:** Backlog, Scheduled, WIP, Paused, Done, Archive.
 - **Views:** Swimlane (Scheduled → WIP → Done with a Paused tray; drag a card
   between lanes to change its status), List, separate Backlog and Archive lists,
@@ -71,11 +71,12 @@ pure `filterAndSort` pass, so every view stays consistent.
 ### Epics & sub-tasks
 
 - Every ticket has a **type** — *Task* or *Epic* — set from the ticket form.
-- Any ticket can be given a **parent** from the form's parent picker, which lists
-  every ticket in every project. The parent's page then lists it under
-  **Sub-tasks**, and the child's page links back to the parent.
-- Nesting is **two levels**: a ticket that already has a parent can't be picked as
-  a parent, and a ticket that has sub-tasks can't be given one.
+- A *Task* can be given a **parent** *Epic* from the form's parent picker, which
+  lists every epic in every project. The epic's page then lists it under
+  **Sub-tasks**, and the child's page links back to the epic. The picker is
+  disabled for an epic (an epic can't be a sub-task) and for a task that already
+  has sub-tasks of its own.
+- Nesting is exactly **two levels**: Epic → Task, and no deeper.
 - Links are **cross-project**. Moving a ticket to another project mints it a new
   id and re-points its sub-tasks to it; soft-deleting a parent leaves its
   sub-tasks in place with no parent.
@@ -157,7 +158,7 @@ id: PTAH-1
 title: Fix the login bug
 project: PTAH
 type: task                      # task | epic
-parent: PTAH-4                  # id of the ticket this sits under, or `parent: null`
+parent: PTAH-4                  # id of the epic this task sits under, or `parent: null`
 status: wip
 priority: high
 created: 2026-09-03T10:00:00.000Z
@@ -172,10 +173,11 @@ labels:
 1. …
 ```
 
-`parent` may reference a ticket in another project (ids are unique across the
-whole store). Moving a ticket to a different project mints it a new id and
-re-points its sub-tasks automatically; soft-deleting a parent leaves its
-sub-tasks in place with no parent.
+`parent` is set only on a task and must point at an epic; it may reference an
+epic in another project (ids are unique across the whole store). Moving an epic
+to a different project mints it a new id and re-points its sub-tasks
+automatically; soft-deleting an epic leaves its sub-tasks in place with no
+parent.
 
 Recycled tickets additionally carry a `deletedAt: <iso>` field. `attachments` is
 **not** stored in frontmatter — it's derived from the ticket's `attachments/<id>/`

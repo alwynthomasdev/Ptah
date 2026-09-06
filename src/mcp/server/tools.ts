@@ -165,7 +165,9 @@ export function registerTools(server: McpServer, configPath: string): void {
         parent: z
           .string()
           .optional()
-          .describe('Parent ticket id, e.g. "PTAH-3". May be in another project. Two levels max.'),
+          .describe(
+            'Id of the epic this ticket sits under, e.g. "PTAH-3". Must be an epic; may be in another project. Only a task can have a parent.',
+          ),
         status: statusSchema.optional(),
         priority: prioritySchema.optional(),
         due: z.string().optional().describe('ISO-8601 date/timestamp.'),
@@ -187,7 +189,9 @@ export function registerTools(server: McpServer, configPath: string): void {
         id: z.string(),
         title: z.string().optional(),
         type: typeSchema.optional(),
-        parent: parentSchema.optional().describe('Parent ticket id, or null to detach.'),
+        parent: parentSchema
+          .optional()
+          .describe('Id of the epic to file this task under, or null to detach. Must be an epic.'),
         status: statusSchema.optional(),
         priority: prioritySchema.optional(),
         due: dueSchema.optional(),

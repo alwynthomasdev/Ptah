@@ -6,6 +6,7 @@
  * page's edit mode) via `v-model`. No submit button — the parent owns
  * Save/Cancel/etc.
  */
+import { computed, watch } from 'vue';
 import {
   PRIORITIES,
   PRIORITY_LABELS,
@@ -30,6 +31,22 @@ const props = defineProps<{
   hasChildren?: boolean;
 }>();
 const emit = defineEmits<{ attached: [ticket: Ticket] }>();
+
+/** Only a task can have a parent, and only when it has no sub-tasks of its own. */
+const parentDisabled = computed(() => props.hasChildren || model.value.type === 'epic');
+const parentDisabledReason = computed(() =>
+  model.value.type === 'epic'
+    ? "Epics can't be sub-tasks — only tasks can have a parent."
+    : "This ticket has sub-tasks, so it can't also be a sub-task.",
+);
+
+// Switching a ticket to an epic drops any parent it had picked.
+watch(
+  () => model.value.type,
+  (type) => {
+    if (type === 'epic' && model.value.parent) model.value.parent = '';
+  },
+);
 </script>
 
 <template>
@@ -80,15 +97,15 @@ const emit = defineEmits<{ attached: [ticket: Ticket] }>();
       <textarea v-model="model.urls" rows="3" placeholder="https://example.com/issue/123" />
     </label>
 
-    <label
-      >Parent
+    <div class="parent-field">
+      <span class="parent-field-label">Parent</span>
       <ParentPicker
         v-model="model.parent"
         :self-id="props.ticketId"
-        :disabled="props.hasChildren"
-        disabled-reason="This ticket has sub-tasks, so it can't also be a sub-task."
+        :disabled="parentDisabled"
+        :disabled-reason="parentDisabledReason"
       />
-    </label>
+    </div>
 
     <label class="md-field">
       <span>Description (Markdown)</span>
@@ -108,7 +125,8 @@ const emit = defineEmits<{ attached: [ticket: Ticket] }>();
   flex-direction: column;
   gap: 12px;
 }
-label {
+label,
+.parent-field {
   display: flex;
   flex-direction: column;
   gap: 4px;

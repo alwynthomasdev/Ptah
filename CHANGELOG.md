@@ -6,6 +6,17 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-09-06
+
+Fixes a parent picker that could get stuck open, and tightens the epic /
+sub-task rules so only an epic can be a parent and an epic can never have one.
+
+### Changed
+- **Only an epic can be a parent, and an epic can't be given one.** The parent picker now lists epics only (was every parentless ticket). The ticket form disables the picker when the type is Epic — or when the ticket already has sub-tasks of its own — and clears any chosen parent when you switch the type to Epic. `TicketService` now rejects a non-epic parent, rejects giving an epic a parent, and rejects demoting an epic that still has sub-tasks to a task. The MCP `parent` parameter descriptions, `README.md`, `docs/claude-integration.md`, and the Ptah skill (bumped to 1.0.1) are updated to the new rules.
+
+### Fixed
+- **The Parent picker could get stuck open.** Its full-viewport dismiss backdrop was a non-interactive descendant of a `<label>`, so the browser re-dispatched every click on it to the label's control — the picker's own toggle button — reopening the popover immediately. The ticket form no longer wraps the picker in a `<label>`.
+
 ## [1.0.3] - 2026-09-06
 
 Adds a "Today" view, moves Quick Add into its own always-on-top window, lets you

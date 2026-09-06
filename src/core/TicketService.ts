@@ -36,7 +36,12 @@ export class TicketService {
     if (!(await this.projects.exists(input.project))) {
       throw new Error(`Project "${input.project}" does not exist.`);
     }
-    if (input.parent != null) await this.assertParentAllowed(null, input.parent);
+    if (input.parent != null) {
+      if ((input.type ?? 'task') === 'epic') {
+        throw new Error("An epic can't be a sub-task; only a task can have a parent.");
+      }
+      await this.assertParentAllowed(null, input.parent);
+    }
     const n = await this.projects.bumpCounter(input.project);
     const ticket = createTicket(formatId(input.project, n), input);
     return this.tickets.save(ticket);
@@ -44,7 +49,16 @@ export class TicketService {
 
   async update(id: string, patch: TicketPatch): Promise<Ticket> {
     const current = await this.tickets.get(id);
-    if (typeof patch.parent === 'string') await this.assertParentAllowed(id, patch.parent);
+    const nextType = patch.type ?? current.type;
+    if (typeof patch.parent === 'string') {
+      if (nextType === 'epic') {
+        throw new Error("An epic can't be a sub-task; only a task can have a parent.");
+      }
+      await this.assertParentAllowed(id, patch.parent);
+    }
+    if (patch.type === 'task' && current.type === 'epic' && (await this.listChildren(id)).length > 0) {
+      throw new Error("This epic has sub-tasks; detach them before changing it to a task.");
+    }
     return this.tickets.save(applyPatch(current, patch));
   }
 
@@ -74,8 +88,9 @@ export class TicketService {
   }
 
   /**
-   * Guard the two-level hierarchy for a proposed `child -> parent` link.
-   * `childId` is null when the child doesn't exist yet (creation).
+   * Guard the parent link for a proposed `child -> parent`: the parent must be
+   * an `epic`, and the two-level hierarchy must hold. `childId` is null when the
+   * child doesn't exist yet (creation).
    */
   private async assertParentAllowed(childId: string | null, parentId: string): Promise<void> {
     if (parentId === childId) throw new Error("A ticket can't be its own parent.");
@@ -83,6 +98,9 @@ export class TicketService {
       throw new Error(`Parent ticket "${parentId}" does not exist.`);
     }
     const parent = await this.tickets.get(parentId);
+    if (parent.type !== 'epic') {
+      throw new Error(`"${parentId}" is not an epic; only an epic can be a parent.`);
+    }
     if (parent.parent != null) {
       throw new Error(
         `"${parentId}" is already a sub-task of "${parent.parent}"; nesting is two levels deep.`,

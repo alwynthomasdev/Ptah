@@ -5,7 +5,7 @@ description: >-
   Markdown file on disk. Use to generate importable Ptah ticket files, read or summarise a
   ~/Ptah data folder, or move tickets between Ptah and another tracker (Jira, Linear,
   GitHub Issues, and the like).
-version: 1.0.0
+version: 1.0.1
 license: MIT
 ---
 
@@ -35,9 +35,10 @@ its MCP server aren't available.
 
 ## Compatibility
 
-This describes Ptah's on-disk format as of **Ptah v1.0.2**, verified against
+This describes Ptah's on-disk format as of **Ptah v1.0.4**, verified against
 `src/models/Ticket.ts`, `src/storage/TicketRepository.ts`, `src/storage/markdownFile.ts`,
-`src/models/Project.ts`, `src/shared/ids.ts`, and `src/core/ImportExportService.ts`. If the
+`src/models/Project.ts`, `src/shared/ids.ts`, `src/core/TicketService.ts`, and
+`src/core/ImportExportService.ts`. If the
 user's Ptah is much newer, re-check the field table below against the repo's `README.md`
 ("Where your data lives") and this skill's changelog at the end.
 
@@ -46,8 +47,8 @@ repo (`test/skills/ptah-format.test.ts`) fails if it falls out of step with the 
 
 ```yaml
 # format-summary — checked by test/skills/ptah-format.test.ts. Keep in step with the code.
-skillVersion: 1.0.0
-verifiedAgainstPtah: 1.0.2
+skillVersion: 1.0.1
+verifiedAgainstPtah: 1.0.4
 frontmatterKeys: [id, title, project, type, parent, status, priority, created, due, labels, urls]
 statuses: [backlog, scheduled, wip, paused, done, archive]
 priorities: [lowest, low, medium, high, highest]
@@ -99,7 +100,7 @@ the ticket's `description`. Ptah writes the frontmatter keys in this exact order
 | `title` | string | the only field that genuinely must be present and non-empty |
 | `project` | project key | must match an existing `projects/<KEY>/` on the import target |
 | `type` | `task` \| `epic` | default `task` |
-| `parent` | ticket id, or `null` | the ticket this one sits under; may be in another project; two levels deep max |
+| `parent` | ticket id, or `null` | the `epic` this ticket sits under; may be in another project. Only a `task` may set it, and only to an `epic` — see *Parents, children, and epics* |
 | `status` | `backlog` \| `scheduled` \| `wip` \| `paused` \| `done` \| `archive` | default `backlog` |
 | `priority` | `lowest` \| `low` \| `medium` \| `high` \| `highest` | default `medium` |
 | `created` | ISO-8601 timestamp — **quote it** | e.g. `'2026-09-06T10:00:00.000Z'` |
@@ -171,9 +172,13 @@ position).
 
 ## Parents, children, and epics
 
-- `type: epic` is only a classifier. **Any** ticket — task or epic — can be a `parent`.
-- Nesting is exactly **two levels**: a ticket with a `parent` cannot itself be a parent, and
-  you cannot give a `parent` to a ticket that already has children.
+- Only an **`epic`** can be a `parent`. A `task` may point its `parent` at an epic; a `task`
+  can never itself be a parent, and an `epic` can never have a `parent` of its own.
+- Nesting is therefore exactly **two levels**: `epic` → `task`, and no deeper.
+- The app enforces this on create and edit. The importer is more forgiving (it only checks
+  the `parent` is a well-formed id), so a hand-authored batch that wires a task under a
+  non-epic, or gives an epic a parent, will import but won't round-trip through an edit —
+  keep generated hierarchies to `epic` → `task`.
 - `parent` may point at a ticket in a different project (ids are globally unique).
 - **On import, `parent` links only survive within a single import batch.** Ptah matches a
   child's `parent` value against the source `id` of another file in the same import and
@@ -357,6 +362,12 @@ working with.
 Versioning: **patch** = wording/clarification; **minor** = an additive format change (a new
 optional field, a new enum value); **major** = a breaking change (a renamed or removed
 field, changed semantics).
+
+### 1.0.1 — 2026-09-06
+
+Clarify the parent/child rules for Ptah v1.0.4: only an `epic` can be a `parent`, a `task`
+can never be a parent, and an `epic` can never have a `parent`. Updated the `parent` field
+note and the *Parents, children, and epics* section; no format-summary change.
 
 ### 1.0.0 — 2026-09-06
 

@@ -104,7 +104,24 @@ describe('TicketDialog — default project selection', () => {
 });
 
 describe('TicketDialog — type and parent', () => {
-  it('sends type and a null parent by default; carries a prefilled parentId', async () => {
+  it('carries a prefilled parentId for a task', async () => {
+    const projects = useProjectsStore();
+    projects.items = [makeProject('TODO', 'To Do')];
+    projects.activeKey = 'TODO';
+
+    const wrapper = mount(TicketDialog, { props: { projectKey: 'TODO', parentId: 'TODO-9' } });
+
+    await wrapper.get('input[required]').setValue('A sub-task');
+    await wrapper.get('form').trigger('submit');
+    await vi.waitUntil(() => ptahMock.tickets.create.mock.calls.length > 0);
+
+    expect(ptahMock.tickets.create.mock.calls[0][0]).toMatchObject({
+      type: 'task',
+      parent: 'TODO-9',
+    });
+  });
+
+  it('clears a prefilled parent when the type is switched to epic', async () => {
     const projects = useProjectsStore();
     projects.items = [makeProject('TODO', 'To Do')];
     projects.activeKey = 'TODO';
@@ -115,13 +132,13 @@ describe('TicketDialog — type and parent', () => {
     if (!typeLabel) throw new Error('Type label/select not found');
     await typeLabel.get('select').setValue('epic');
 
-    await wrapper.get('input[required]').setValue('An epic sub-task');
+    await wrapper.get('input[required]').setValue('An epic');
     await wrapper.get('form').trigger('submit');
     await vi.waitUntil(() => ptahMock.tickets.create.mock.calls.length > 0);
 
     expect(ptahMock.tickets.create.mock.calls[0][0]).toMatchObject({
       type: 'epic',
-      parent: 'TODO-9',
+      parent: null,
     });
   });
 });

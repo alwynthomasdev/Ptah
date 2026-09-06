@@ -1,9 +1,8 @@
 <script setup lang="ts">
 /**
- * Single-select picker for a ticket's parent. Lists every live ticket (all
- * projects — the tickets store already holds them), minus the ticket itself and
- * any ticket that is already a sub-task (nesting is two levels deep). Epics are
- * listed first. `''` means "no parent".
+ * Single-select picker for a ticket's parent. Only an `epic` can be a parent, so
+ * the list is every live epic (all projects — the tickets store already holds
+ * them) that isn't the ticket itself. `''` means "no parent".
  */
 import { computed, nextTick, ref, watch } from 'vue';
 import { TYPE_LABELS } from '@models/Ticket';
@@ -25,11 +24,8 @@ const searchInput = ref<HTMLInputElement | null>(null);
 
 const candidates = computed(() =>
   [...tickets.items]
-    .filter((t) => t.id !== props.selfId && t.parent == null)
-    .sort((a, b) => {
-      if (a.type !== b.type) return a.type === 'epic' ? -1 : 1;
-      return a.id.localeCompare(b.id, undefined, { numeric: true });
-    }),
+    .filter((t) => t.id !== props.selfId && t.type === 'epic')
+    .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })),
 );
 
 const visible = computed(() => {
@@ -98,7 +94,9 @@ function pick(id: string) {
             TYPE_LABELS[t.type]
           }}</span>
         </button>
-        <p v-if="visible.length === 0" class="opt none">No matching tickets</p>
+        <p v-if="visible.length === 0" class="opt none">
+          {{ search.trim() ? 'No matching epics' : 'No epics to link to' }}
+        </p>
       </div>
     </template>
   </div>

@@ -126,22 +126,31 @@ describe('epic / parent hierarchy', () => {
     await expect(ctx.tickets.update(t.id, { parent: t.id })).rejects.toThrow(/its own parent/i);
   });
 
-  it('rejects nesting three levels deep', async () => {
-    const epic = await ctx.tickets.create({ title: 'Epic', project: 'PTAH', type: 'epic' });
-    const mid = await ctx.tickets.create({ title: 'Mid', project: 'PTAH', parent: epic.id });
-    const leaf = await ctx.tickets.create({ title: 'Leaf', project: 'PTAH' });
+  it('rejects a non-epic parent — only an epic can be a parent', async () => {
+    const task = await ctx.tickets.create({ title: 'T', project: 'PTAH' });
+    const other = await ctx.tickets.create({ title: 'O', project: 'PTAH' });
 
-    await expect(ctx.tickets.update(leaf.id, { parent: mid.id })).rejects.toThrow(/two levels/i);
+    await expect(ctx.tickets.update(other.id, { parent: task.id })).rejects.toThrow(/not an epic/i);
+    await expect(
+      ctx.tickets.create({ title: 'C', project: 'PTAH', parent: task.id }),
+    ).rejects.toThrow(/not an epic/i);
   });
 
-  it('refuses to give a parent to a ticket that already has sub-tasks', async () => {
-    const parent = await ctx.tickets.create({ title: 'P', project: 'PTAH' });
-    await ctx.tickets.create({ title: 'C', project: 'PTAH', parent: parent.id });
-    const other = await ctx.tickets.create({ title: 'O', project: 'PTAH', type: 'epic' });
+  it("rejects giving an epic a parent — an epic can't be a sub-task", async () => {
+    const a = await ctx.tickets.create({ title: 'A', project: 'PTAH', type: 'epic' });
+    const b = await ctx.tickets.create({ title: 'B', project: 'PTAH', type: 'epic' });
 
-    await expect(ctx.tickets.update(parent.id, { parent: other.id })).rejects.toThrow(
-      /sub-tasks of its own/i,
-    );
+    await expect(ctx.tickets.update(a.id, { parent: b.id })).rejects.toThrow(/can't be a sub-task/i);
+    await expect(
+      ctx.tickets.create({ title: 'C', project: 'PTAH', type: 'epic', parent: b.id }),
+    ).rejects.toThrow(/can't be a sub-task/i);
+  });
+
+  it('refuses to turn an epic with sub-tasks into a task', async () => {
+    const epic = await ctx.tickets.create({ title: 'Epic', project: 'PTAH', type: 'epic' });
+    await ctx.tickets.create({ title: 'Child', project: 'PTAH', parent: epic.id });
+
+    await expect(ctx.tickets.update(epic.id, { type: 'task' })).rejects.toThrow(/sub-tasks/i);
   });
 
   it('orphans sub-tasks when the epic is soft-deleted; restore does not re-attach', async () => {
