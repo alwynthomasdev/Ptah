@@ -6,6 +6,11 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-09
+
+Gives the **Today screen a swimlane view** alongside its list, adds a
+**"Next Monday"** due-date snooze, and fixes the priority dropdown there.
+
 ### Added
 - **A swimlane view on the Today screen.** A segmented **List / Swimlane** toggle in the Today header switches between the existing list and a new board that groups the "due today or earlier" set by status into Backlog / Scheduled / WIP / Done lanes plus a Paused tray. Cards drag between lanes to change status, and dropping one on **Done** clears it off Today (the Done lane is only a drop target). The choice is remembered per device (`localStorage` `ptah-today-view`), mirroring the theme preference.
 - **A "Next Monday" snooze preset** on the due-date menu — on both the Today list rows and the swimlane cards — alongside Tomorrow / In 3 days / In 1 week / In 2 weeks / In 1 month. Backed by new `nextWeekday()` / `nextMonday()` UTC-calendar helpers in `src/shared/dates.ts` and a shared preset list in `src/renderer/lib/snooze.ts`.
