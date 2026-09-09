@@ -75,6 +75,26 @@ export function addToDate(
   return `${d.toISOString().slice(0, 10)}T00:00:00.000Z`;
 }
 
+/**
+ * The next occurrence of `weekday` (0 = Sunday .. 6 = Saturday) on the UTC
+ * calendar, as a UTC-midnight ISO string in the `todayIso()` shape. Strictly in
+ * the future: when `now` already falls on that weekday, returns one week ahead.
+ * Weekday math runs on `getUTCDay()` (never local time) to stay consistent with
+ * the other date-only helpers here and with how due dates are stored.
+ */
+export function nextWeekday(weekday = 1, now: Date = new Date()): string {
+  const today = todayIso(now);
+  const cur = new Date(today).getUTCDay();
+  let delta = (weekday - cur + 7) % 7;
+  if (delta === 0) delta = 7;
+  return addToDate(today, { days: delta });
+}
+
+/** Convenience: the next UTC-calendar Monday, in the `todayIso()` shape. */
+export function nextMonday(now: Date = new Date()): string {
+  return nextWeekday(1, now);
+}
+
 /** How urgent a due date is, for colour-coding. `none` = no due date set. */
 export type DueTone = 'none' | 'normal' | 'soon' | 'overdue';
 

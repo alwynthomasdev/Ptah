@@ -2,7 +2,8 @@
 import { ref, type CSSProperties } from 'vue';
 import type { Priority, Ticket } from '@models/Ticket';
 import { PRIORITIES, PRIORITY_LABELS, STATUS_LABELS } from '@models/Ticket';
-import { addToDate, formatDate, formatDueRelative, todayIso } from '@shared/dates';
+import { formatDate, formatDueRelative } from '@shared/dates';
+import { SNOOZE } from '../lib/snooze';
 
 const props = defineProps<{
   tickets: Ticket[];
@@ -38,18 +39,9 @@ function choosePriority(t: Ticket, priority: Priority) {
 /** Id of the ticket whose snooze menu is open, or null. */
 const dueMenuFor = ref<string | null>(null);
 
-/** Snooze presets — all measured from today, not the current due date. */
-const SNOOZE: { label: string; d: { days?: number; months?: number } }[] = [
-  { label: 'Tomorrow', d: { days: 1 } },
-  { label: 'In 3 days', d: { days: 3 } },
-  { label: 'In 1 week', d: { days: 7 } },
-  { label: 'In 2 weeks', d: { days: 14 } },
-  { label: 'In 1 month', d: { months: 1 } },
-];
-
-function chooseDue(t: Ticket, d: { days?: number; months?: number }) {
+function chooseDue(t: Ticket, opt: (typeof SNOOZE)[number]) {
   dueMenuFor.value = null;
-  emit('setDue', t, addToDate(todayIso(), d));
+  emit('setDue', t, opt.to());
 }
 
 /** Relative due label + tone for a row, computed once. */
@@ -146,7 +138,7 @@ function pillStyle(t: Ticket): CSSProperties {
                   :key="opt.label"
                   type="button"
                   class="menu-opt"
-                  @click="chooseDue(t, opt.d)"
+                  @click="chooseDue(t, opt)"
                 >
                   {{ opt.label }}
                 </button>
@@ -251,42 +243,7 @@ function pillStyle(t: Ticket): CSSProperties {
 .list-table tbody tr:hover .prio-btn .caret {
   opacity: 1;
 }
-.menu-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-dropdown);
-}
-.menu {
-  position: absolute;
-  z-index: calc(var(--z-dropdown) + 1);
-  top: calc(100% + 2px);
-  left: 0;
-  min-width: 130px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.menu-opt {
-  text-align: left;
-  padding: 5px 8px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  font: inherit;
-  font-size: var(--fs-sm);
-  cursor: pointer;
-}
-.menu-opt:hover {
-  background: var(--surface-2);
-}
-.menu-opt.on {
-  background: var(--surface-2);
-  font-weight: 600;
-}
+/* .menu / .menu-opt / .menu-backdrop are global utilities in styles/base.css. */
 .due {
   position: relative;
   color: var(--text-faint);

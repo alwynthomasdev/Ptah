@@ -114,6 +114,47 @@ textarea {
   color: var(--text-dim);
 }
 
+/* Lightweight inline dropdown: a full-viewport click-catcher plus an
+   absolutely-positioned panel. Used by the priority / snooze menus on the
+   ticket list rows and swimlane cards; the trigger's offset parent needs
+   `position: relative`. */
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dropdown);
+}
+.menu {
+  position: absolute;
+  z-index: calc(var(--z-dropdown) + 1);
+  top: calc(100% + 2px);
+  left: 0;
+  min-width: 130px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.menu-opt {
+  text-align: left;
+  padding: 5px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.menu-opt:hover {
+  background: var(--surface-2);
+}
+.menu-opt.on {
+  background: var(--surface-2);
+  font-weight: 600;
+}
+
 /* Thin, theme-aware scrollbars — mirrors the mockup. */
 .scroll-thin {
   scrollbar-width: thin;

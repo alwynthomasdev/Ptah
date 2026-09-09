@@ -6,6 +6,17 @@ All notable changes to Ptah are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **A swimlane view on the Today screen.** A segmented **List / Swimlane** toggle in the Today header switches between the existing list and a new board that groups the "due today or earlier" set by status into Backlog / Scheduled / WIP / Done lanes plus a Paused tray. Cards drag between lanes to change status, and dropping one on **Done** clears it off Today (the Done lane is only a drop target). The choice is remembered per device (`localStorage` `ptah-today-view`), mirroring the theme preference.
+- **A "Next Monday" snooze preset** on the due-date menu — on both the Today list rows and the swimlane cards — alongside Tomorrow / In 3 days / In 1 week / In 2 weeks / In 1 month. Backed by new `nextWeekday()` / `nextMonday()` UTC-calendar helpers in `src/shared/dates.ts` and a shared preset list in `src/renderer/lib/snooze.ts`.
+- **Inline priority editing on swimlane cards** on the Today board, via an opt-in `controls` prop on `TicketCard`; the main board's cards are unchanged.
+
+### Changed
+- The board's drag-and-drop and lane markup moved into a shared presentational `src/renderer/components/Swimlane.vue`, now used by both `SwimlaneView` and the Today board. The `.menu` / `.menu-opt` / `.menu-backdrop` dropdown styles are promoted from `TicketList.vue` to global utilities in `src/renderer/styles/base.css`.
+
+### Fixed
+- **The priority dropdown did nothing on the Today screen.** `TodayView` never wired the `@set-priority` handler from `TicketList`, so changing a ticket's priority there silently no-oped. It now persists via `tickets.update({ priority })`, the same as the List and board views.
+
 ## [1.1.0] - 2026-09-06
 
 Adds **notes and notebooks** — a second first-class Markdown-file type living

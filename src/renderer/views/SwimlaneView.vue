@@ -1,21 +1,17 @@
 <script setup lang="ts">
 /**
- * Swimlane: three horizontal lanes (Scheduled -> WIP -> Done) with a separate
- * collapsible Paused tray beneath. Store-driven via `tickets.inStatus`. Cards
- * drag between lanes; a drop rewrites the ticket's status on disk.
+ * The main board: three lanes (Scheduled -> WIP -> Done) plus a Paused tray,
+ * store-driven via `tickets.inStatus`. Rendering + drag mechanics live in the
+ * shared `Swimlane` component; this view supplies the data and persists a drop.
  */
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import type { Status, Ticket } from '@models/Ticket';
 import { useTicketsStore } from '../stores/tickets';
-import TicketCard from '../components/TicketCard.vue';
-
-const DND_MIME = 'application/x-ptah-ticket';
+import Swimlane from '../components/Swimlane.vue';
 
 const tickets = useTicketsStore();
 const router = useRouter();
-const pausedOpen = ref(true);
-const dropTarget = ref<Status | null>(null);
 const dndError = ref<string | null>(null);
 
 const lanes = computed(() => [
@@ -30,23 +26,7 @@ const lanes = computed(() => [
 ]);
 const paused = computed(() => tickets.inStatus('paused'));
 
-function onDragOver(e: DragEvent, status: Status) {
-  if (!e.dataTransfer?.types.includes(DND_MIME)) return;
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  dropTarget.value = status;
-}
-
-function onDragLeave(status: Status) {
-  if (dropTarget.value === status) dropTarget.value = null;
-}
-
-async function onDrop(e: DragEvent, status: Status) {
-  dropTarget.value = null;
-  const id = e.dataTransfer?.getData(DND_MIME);
-  if (!id) return;
-  const current = tickets.items.find((t) => t.id === id);
-  if (!current || current.status === status) return;
+async function onMove(id: string, status: Status) {
   try {
     dndError.value = null;
     await tickets.update(id, { status });
@@ -61,161 +41,5 @@ function open(t: Ticket) {
 </script>
 
 <template>
-  <section class="board">
-    <p v-if="dndError" class="err">{{ dndError }}</p>
-
-    <div class="lanes scroll-thin">
-      <div v-for="lane in lanes" :key="lane.key" class="lane">
-        <div class="lane-head">
-          <span class="dot" :style="{ background: lane.color }" />
-          {{ lane.label }}
-          <span class="n">{{ lane.items.length }}</span>
-        </div>
-        <div
-          class="lane-body"
-          :class="{ 'drop-target': dropTarget === lane.key }"
-          @dragover="onDragOver($event, lane.key)"
-          @dragleave="onDragLeave(lane.key)"
-          @drop.prevent="onDrop($event, lane.key)"
-        >
-          <TicketCard v-for="t in lane.items" :key="t.id" :ticket="t" @open="open" />
-        </div>
-      </div>
-    </div>
-
-    <div class="paused-tray">
-      <div class="paused-tray-head" @click="pausedOpen = !pausedOpen">
-        <span class="dot" />
-        <b>Paused</b>
-        <span class="n">{{ paused.length }}</span>
-        <span class="chevron">{{ pausedOpen ? '▾ hide' : '▸ show' }}</span>
-      </div>
-      <div
-        v-show="pausedOpen"
-        class="paused-tray-body scroll-thin"
-        :class="{ 'drop-target': dropTarget === 'paused' }"
-        @dragover="onDragOver($event, 'paused')"
-        @dragleave="onDragLeave('paused')"
-        @drop.prevent="onDrop($event, 'paused')"
-      >
-        <div v-if="paused.length === 0" class="empty muted">Nothing paused.</div>
-        <TicketCard
-          v-for="t in paused"
-          :key="t.id"
-          :ticket="t"
-          class="dashed"
-          @open="open"
-        />
-      </div>
-    </div>
-  </section>
+  <Swimlane :lanes="lanes" :paused="paused" :error="dndError" @move="onMove" @open="open" />
 </template>
-
-<style scoped>
-.board {
-  display: flex;
-  flex-direction: column;
-}
-.lanes {
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  padding-bottom: 10px;
-}
-.lane {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 260px;
-  min-width: 260px;
-}
-.lane-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 2px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-dim);
-}
-.lane-head .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-}
-.lane-head .n {
-  margin-left: auto;
-  font-family: var(--mono);
-  color: var(--text-faint);
-  font-weight: 400;
-}
-.lane-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 40px;
-  border-radius: var(--radius);
-  transition: background 0.12s ease;
-}
-.lane-body.drop-target,
-.paused-tray-body.drop-target {
-  background: var(--surface-2);
-  outline: 1px dashed var(--accent);
-  outline-offset: 2px;
-}
-
-.err {
-  margin: 0 0 12px;
-  color: var(--danger);
-  font-size: 12px;
-}
-
-.paused-tray {
-  margin-top: 18px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-}
-.paused-tray-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  cursor: pointer;
-}
-.paused-tray-head .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  background: var(--paused);
-}
-.paused-tray-head b {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-dim);
-}
-.paused-tray-head .n {
-  color: var(--text-faint);
-  font-family: var(--mono);
-  font-size: 11px;
-}
-.paused-tray-head .chevron {
-  margin-left: auto;
-  color: var(--text-faint);
-  font-size: 11px;
-}
-.paused-tray-body {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 0 12px 12px;
-}
-.paused-tray-body .dashed {
-  border-style: dashed;
-  flex: 0 0 280px;
-  width: 280px;
-}
-.empty {
-  padding: 2px 0 8px;
-  font-size: 12px;
-}
-</style>

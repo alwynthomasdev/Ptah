@@ -5,6 +5,8 @@ import {
   formatDueRelative,
   isDueTodayOrEarlier,
   isOverdue,
+  nextMonday,
+  nextWeekday,
   todayIso,
 } from '@shared/dates';
 
@@ -67,6 +69,32 @@ describe('addToDate', () => {
 
   it('throws on an unparseable date', () => {
     expect(() => addToDate('not-a-date', { days: 1 })).toThrow();
+  });
+});
+
+describe('nextWeekday / nextMonday', () => {
+  // NOW (2026-09-06) is a Sunday, so the coming Monday is the very next day.
+  it('returns the coming weekday in the todayIso shape', () => {
+    expect(nextMonday(NOW)).toBe(TOMORROW);
+    expect(nextMonday(NOW)).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+    expect(nextWeekday(1, NOW)).toBe(TOMORROW);
+    expect(nextMonday(NOW)).toBe(nextWeekday(1, NOW));
+  });
+
+  it('is strictly in the future when now already falls on that weekday', () => {
+    const monday = new Date('2026-09-07T12:00:00.000Z');
+    expect(nextWeekday(1, monday)).toBe('2026-09-14T00:00:00.000Z');
+  });
+
+  it('counts forward across the rest of the week', () => {
+    const wednesday = new Date('2026-09-09T09:00:00.000Z');
+    expect(nextWeekday(1, wednesday)).toBe('2026-09-14T00:00:00.000Z'); // next Monday
+    expect(nextWeekday(5, wednesday)).toBe('2026-09-11T00:00:00.000Z'); // Friday
+  });
+
+  it('resolves the weekday on the UTC calendar day, not local time', () => {
+    // Late-evening UTC on Sunday still resolves "next Monday" to 2026-09-07.
+    expect(nextMonday(new Date('2026-09-06T23:30:00.000Z'))).toBe(TOMORROW);
   });
 });
 

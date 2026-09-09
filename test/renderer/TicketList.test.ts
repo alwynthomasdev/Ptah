@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import type { Ticket } from '@models/Ticket';
-import { addToDate, todayIso } from '@shared/dates';
+import { addToDate, nextMonday, todayIso } from '@shared/dates';
 import TicketList from '../../src/renderer/components/TicketList.vue';
 
 function makeTicket(overrides: Partial<Ticket> = {}): Ticket {
@@ -64,12 +64,13 @@ describe('TicketList — snooze menu', () => {
     expect(options.map((o) => o.text())).toEqual([
       'Tomorrow',
       'In 3 days',
+      'Next Monday',
       'In 1 week',
       'In 2 weeks',
       'In 1 month',
     ]);
 
-    await options[2].trigger('click'); // "In 1 week"
+    await options[3].trigger('click'); // "In 1 week"
 
     const emitted = wrapper.emitted('setDue');
     expect(emitted).toHaveLength(1);
@@ -77,6 +78,21 @@ describe('TicketList — snooze menu', () => {
     expect(emitted![0][1]).toBe(addToDate(todayIso(), { days: 7 }));
     // Menu closes after a pick.
     expect(wrapper.find('.menu').exists()).toBe(false);
+  });
+
+  it('emits set-due with the coming Monday for the "Next Monday" preset', async () => {
+    const ticket = makeTicket({ due: dueInDays(-3) });
+    const wrapper = mount(TicketList, {
+      props: { tickets: [ticket], variant: 'list', showSnooze: true },
+    });
+
+    await wrapper.find('.snooze-btn').trigger('click');
+    const nextMondayOpt = wrapper.findAll('.menu .menu-opt').find((o) => o.text() === 'Next Monday');
+    await nextMondayOpt!.trigger('click');
+
+    const emitted = wrapper.emitted('setDue');
+    expect(emitted).toHaveLength(1);
+    expect(emitted![0][1]).toBe(nextMonday());
   });
 
   it('opening the menu does not emit open (row navigation is suppressed)', async () => {
